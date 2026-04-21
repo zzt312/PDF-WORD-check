@@ -1,0 +1,1531 @@
+{% extends "base_ynex_word.html" %}
+
+{% block title %}参考文献分析 - {{ file_name }}{% endblock %}
+
+<!-- VS Code: 禁用JavaScript检查,因为此文件包含Jinja2模板语法 -->
+<!-- @ts-nocheck -->
+
+{% block content %}
+<!-- 参考文献分析页面 -->
+<div class="container-fluid p-0">
+    <!-- 页面标题 -->
+    <div class="card custom-card mb-3">
+        <div class="card-header">
+            <div class="card-title mb-0">
+                <i class="ri-bookmark-line me-2"></i>参考文献分析 - {{ file_name }}
+            </div>
+        </div>
+    </div>
+
+    <!-- 整体分析卡片 -->
+    <div class="card custom-card mb-3">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="ri-bar-chart-line me-2"></i>整体质量评估</h6>
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <small class="text-muted"><i class="ri-file-list-2-line me-1"></i>引用规范：</small>
+                        <span class="badge bg-info">{{ reference_data.analysis_summary.citation_system }}</span>
+                    </div>
+                    <button class="btn btn-sm btn-success" onclick="downloadValidationJson()">
+                        <i class="ri-download-line me-1"></i>下载完整验证JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if reference_data.analysis_summary.total_references > 0 %}
+                <div class="row">
+                    <!-- 质量评估 -->
+                    <div class="col-md-4">
+                        <h6><i class="ri-checkbox-circle-line text-success me-2"></i>格式正确率</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>{{ reference_data.analysis_summary.correct_count }}/{{ reference_data.analysis_summary.total_references }} 格式正确</span>
+                            <span class="badge bg-success">{{ "%.0f"|format(reference_data.analysis_summary.success_rate) }}%</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>{{ reference_data.analysis_summary.error_count }}/{{ reference_data.analysis_summary.total_references }} 需要修正</span>
+                            <span class="badge bg-warning">{{ "%.0f"|format(reference_data.analysis_summary.error_rate) }}%</span>
+                        </div>
+                    </div>
+
+                    <!-- 主要问题 -->
+                    <div class="col-md-8">
+                        {% if reference_data.analysis_summary.main_errors %}
+                        <h6><i class="ri-tools-line me-2"></i>主要问题</h6>
+                        <div style="max-height: 150px; overflow-y: auto;">
+                            <div class="row">
+                                {% for error in reference_data.analysis_summary.main_errors %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="error-filter-item p-2 rounded border" 
+                                         data-error-type="{{ error.type }}" 
+                                         style="cursor: pointer; transition: background-color 0.2s; height: 100%;">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <small class="text-muted fw-bold">{{ error.type }}</small>
+                                            <span class="badge bg-danger">{{ error.count }}条</span>
+                                        </div>
+                                        <small class="text-secondary">{{ error.description }}</small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="ri-check-circle-line text-success" style="font-size: 2rem;"></i>
+                            <h6 class="mt-2">无主要问题</h6>
+                            <p class="mb-0">所有参考文献格式均正确</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="ri-bar-chart-line" style="font-size: 2rem;"></i>
+                    <h6 class="mt-2">无分析数据</h6>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="row">
+        <!-- 左侧：参考文献列表 (50%) -->
+        <div class="col-6" style="padding-right: 0.5rem;">
+            <!-- 报告参考文献容器 -->
+            {% if reference_data.report_references %}
+            <div class="card custom-card mb-3" style="height: 290px;">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="ri-file-list-3-line me-2"></i>报告参考文献</h6>
+                        <!-- 状态图例筛选器 -->
+                        <div class="d-flex align-items-center" id="report-status-filter-group">
+                            <div class="d-flex align-items-center me-2 status-filter-item status-filter-all selected" data-filter="all" data-type="report" style="cursor:pointer;">
+                                <div class="border rounded me-1" style="width: 12px; height: 12px; background-color: #e9ecef; border-left: 3px solid #adb5bd !important;"></div>
+                                <small class="text-muted">全部</small>
+                            </div>
+                            <div class="d-flex align-items-center me-2 status-filter-item status-filter-correct" data-filter="correct" data-type="report" style="cursor:pointer;">
+                                <div class="border rounded me-1" style="width: 12px; height: 12px; background-color: #e8f5e8; border-left: 3px solid #4caf50 !important;"></div>
+                                <small class="text-muted">正确</small>
+                            </div>
+                            <div class="d-flex align-items-center status-filter-item status-filter-error" data-filter="error" data-type="report" style="cursor:pointer;">
+                                <div class="border rounded me-1" style="width: 12px; height: 12px; background-color: #ffebee; border-left: 3px solid #f44336 !important;"></div>
+                                <small class="text-muted">错误</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0" style="overflow-y: auto; height: calc(100% - 50px);">
+                    <div class="p-3">
+                        <div id="report-references">
+                            {% for ref in reference_data.report_references %}
+                            <div class="reference-wrapper d-flex align-items-center mb-2">
+                                <span class="badge bg-primary-transparent text-primary me-2" style="min-width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.875rem; border-radius: 6px;">{{ loop.index }}</span>
+                                <div class="reference-item flex-grow-1 p-2 border rounded" 
+                                     data-ref-index="{{ loop.index0 }}" 
+                                     data-ref-type="report"
+                                     data-ref-id="ref_{{ loop.index }}"
+                                     style="cursor: pointer; transition: all 0.3s;">
+                                    <small class="text-muted">{{ ref }}</small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card custom-card mb-3" style="height: 290px;">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="ri-file-list-3-line me-2"></i>报告参考文献</h6>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div class="text-center text-muted">
+                        <i class="ri-information-line" style="font-size: 2rem;"></i>
+                        <h6 class="mt-2">暂无报告参考文献</h6>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 综述参考文献容器 -->
+            {% if reference_data.review_references %}
+            <div class="card custom-card" style="height: 290px;">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="ri-article-line me-2"></i>综述参考文献</h6>
+                        <!-- 状态图例筛选器 -->
+                        <div class="d-flex align-items-center" id="review-status-filter-group">
+                            <div class="d-flex align-items-center me-2 status-filter-item status-filter-all selected" data-filter="all" data-type="review" style="cursor:pointer;">
+                                <div class="border rounded me-1" style="width: 12px; height: 12px; background-color: #e9ecef; border-left: 3px solid #adb5bd !important;"></div>
+                                <small class="text-muted">全部</small>
+                            </div>
+                            <div class="d-flex align-items-center me-2 status-filter-item status-filter-correct" data-filter="correct" data-type="review" style="cursor:pointer;">
+                                <div class="border rounded me-1" style="width: 12px; height: 12px; background-color: #e8f5e8; border-left: 3px solid #4caf50 !important;"></div>
+                                <small class="text-muted">正确</small>
+                            </div>
+                            <div class="d-flex align-items-center status-filter-item status-filter-error" data-filter="error" data-type="review" style="cursor:pointer;">
+                                <div class="border rounded me-1" style="width: 12px; height: 12px; background-color: #ffebee; border-left: 3px solid #f44336 !important;"></div>
+                                <small class="text-muted">错误</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0" style="overflow-y: auto; height: calc(100% - 50px);">
+                    <div class="p-3">
+                        <div id="review-references">
+                            {% for ref in reference_data.review_references %}
+                            <div class="reference-wrapper d-flex align-items-center mb-2">
+                                <span class="badge bg-primary-transparent text-primary me-2" style="min-width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.875rem; border-radius: 6px;">{{ reference_data.report_references|length + loop.index }}</span>
+                                <div class="reference-item flex-grow-1 p-2 border rounded" 
+                                     data-ref-index="{{ loop.index0 }}" 
+                                     data-ref-type="review"
+                                     data-ref-id="ref_{{ reference_data.report_references|length + loop.index }}"
+                                     style="cursor: pointer; transition: all 0.3s;">
+                                    <small class="text-muted">{{ ref }}</small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card custom-card" style="height: 290px;">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="ri-article-line me-2"></i>综述参考文献</h6>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div class="text-center text-muted">
+                        <i class="ri-information-line" style="font-size: 2rem;"></i>
+                        <h6 class="mt-2">暂无综述参考文献</h6>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 右侧：分析面板 (50%) -->
+        <div class="col-6" style="padding-left: 0.5rem;">
+            <div class="card custom-card" style="height: 600px;">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="ri-search-line me-2"></i>分析结果</h6>
+                </div>
+                <div class="card-body" style="overflow-y: auto; height: calc(100% - 50px);">
+                    <!-- 默认提示 -->
+                    <div id="default-prompt" class="text-center text-muted py-5">
+                        <i class="ri-information-line" style="font-size: 3rem;"></i>
+                        <h6 class="mt-3">请选择参考文献</h6>
+                        <p>点击左侧参考文献查看详细分析结果</p>
+                    </div>
+
+                    <!-- 点击单条参考文献后显示的详情面板（初始隐藏） -->
+                    <div id="reference-detail" style="display: none;">
+                        <div class="mb-3">
+                            <h6><i class="ri-edit-line me-2"></i>原始内容</h6>
+                            <div class="p-2 bg-light rounded">
+                                <small id="detail-original"></small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6><i class="ri-table-line me-2"></i>元素呈现</h6>
+                            <div class="p-2 bg-light rounded">
+                                <div id="detail-elements-table">
+                                    <div class="text-center text-muted py-2">
+                                        <i class="ri-information-line me-2"></i>暂无元素信息
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 核心错误 (error级别) -->
+                        <div class="mb-3" id="detail-errors-section" style="display: none;">
+                            <h6><i class="ri-error-warning-line me-2 text-danger"></i>格式错误</h6>
+                            <div class="p-3 bg-danger bg-opacity-10 rounded border border-danger">
+                                <div id="detail-errors-list" class="small"></div>
+                            </div>
+                        </div>
+
+                        <!-- 格式建议 (info级别) -->
+                        <div class="mb-3" id="detail-infos-section" style="display: none;">
+                            <h6><i class="ri-information-line me-2 text-info"></i>格式建议</h6>
+                            <div class="p-3 bg-info bg-opacity-10 rounded border border-info">
+                                <div id="detail-infos-list" class="small"></div>
+                            </div>
+                        </div>
+
+                        <!-- 格式正确提示 -->
+                        <div class="mb-3" id="detail-correct-section" style="display: none;">
+                            <div class="p-3 bg-success bg-opacity-10 rounded border border-success text-center">
+                                <i class="ri-checkbox-circle-line text-success me-2" style="font-size: 1.5rem;"></i>
+                                <span class="text-success">该参考文献格式正确</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 参考文献包装器隐藏样式 */
+.reference-wrapper.hidden {
+    display: none !important;
+}
+
+/* 状态筛选器选中样式 */
+.status-filter-item.selected {
+    background-color: #f1f3f4 !important;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px #b6d4fe33;
+    transition: background 0.2s;
+}
+
+.status-filter-item {
+    padding: 2px 6px;
+    margin-right: 2px;
+    user-select: none;
+}
+
+/* 错误类型筛选项样式 */
+.error-filter-item:hover {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+}
+
+.error-filter-item.active {
+    background-color: #fff3cd !important;
+    border-color: #ffc107 !important;
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
+}
+
+/* 主要问题区域的错误项样式优化 */
+.error-filter-item {
+    transition: all 0.2s ease;
+    border: 1px solid #e9ecef !important;
+    background-color: #ffffff !important;
+}
+
+.error-filter-item:hover {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.error-filter-item.active {
+    background-color: #fff3cd !important;
+    border-color: #ffc107 !important;
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
+}
+/* 参考文献条目悬停效果 */
+.reference-item:hover {
+    transform: translateX(2px);
+}
+
+/* 错误和建议详情区域样式 */
+#detail-errors-list .border-bottom,
+#detail-infos-list .border-bottom {
+    border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+#detail-errors-list i.ri-close-circle-fill {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+#detail-infos-list i.ri-information-fill {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+/* Badge样式优化 */
+.badge.bg-danger-transparent {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.badge.bg-info-transparent {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* 参考文献状态颜色 */
+.reference-item.status-error {
+    background-color: #ffebee !important;
+    border-color: #f44336 !important;
+    border-left: 4px solid #f44336 !important;
+}
+
+.reference-item.status-warning {
+    background-color: #fff8e1 !important;
+    border-color: #ff9800 !important;
+    border-left: 4px solid #ff9800 !important;
+}
+
+.reference-item.status-correct {
+    background-color: #e8f5e8 !important;
+    border-color: #4caf50 !important;
+    border-left: 4px solid #4caf50 !important;
+}
+
+/* 悬停时保持状态颜色但增强效果 */
+.reference-item.status-error:hover {
+    background-color: #ffcdd2 !important;
+    border-color: #d32f2f !important;
+}
+
+.reference-item.status-warning:hover {
+    background-color: #ffe0b2 !important;
+    border-color: #f57c00 !important;
+}
+
+.reference-item.status-correct:hover {
+    background-color: #c8e6c9 !important;
+    border-color: #388e3c !important;
+}
+
+/* 选中状态 - 根据状态显示不同颜色 */
+/* 正确状态选中 - 深绿色 */
+.reference-item.status-correct.selected {
+    background-color: #2e7d32 !important;
+    border-color: #1b5e20 !important;
+    border-left: 5px solid #1b5e20 !important;
+    box-shadow: 0 3px 10px rgba(46, 125, 50, 0.4) !important;
+    transform: translateX(3px);
+    color: white !important;
+}
+
+.reference-item.status-correct.selected small {
+    color: white !important;
+}
+
+/* 错误状态选中 - 深红色 */
+.reference-item.status-error.selected {
+    background-color: #c62828 !important;
+    border-color: #b71c1c !important;
+    border-left: 5px solid #b71c1c !important;
+    box-shadow: 0 3px 10px rgba(198, 40, 40, 0.4) !important;
+    transform: translateX(3px);
+    color: white !important;
+}
+
+.reference-item.status-error.selected small {
+    color: white !important;
+}
+
+/* 警告状态选中 - 深橙色 */
+.reference-item.status-warning.selected {
+    background-color: #e65100 !important;
+    border-color: #bf360c !important;
+    border-left: 5px solid #bf360c !important;
+    box-shadow: 0 3px 10px rgba(230, 81, 0, 0.4) !important;
+    transform: translateX(3px);
+    color: white !important;
+}
+
+.reference-item.status-warning.selected small {
+    color: white !important;
+}
+
+
+
+/* 自定义滚动条样式 */
+.card-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.card-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.card-body::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.card-body::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* JSON树状结构样式 - 完全复用comprehensive_processor.html */
+.json-viewer-container {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    background: white;
+}
+
+.json-object,
+.json-array {
+    margin-left: 16px;
+    position: relative;
+    border-left: 2px solid #e8f4f8;
+    padding-left: 8px;
+}
+
+.json-line {
+    margin: 2px 0;
+}
+
+.json-key {
+    color: #0d47a1;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.json-string {
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+.json-number {
+    color: #ef6c00;
+    font-weight: 500;
+}
+
+.json-boolean {
+    color: #6a1b9a;
+    font-weight: 500;
+}
+
+.json-null {
+    color: #9e9e9e;
+    font-style: italic;
+}
+
+.json-bracket {
+    color: #666;
+    font-weight: normal;
+    margin-left: 4px;
+}
+
+.json-toggle {
+    cursor: pointer;
+    user-select: none;
+    color: #1976d2;
+    margin-right: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    transition: color 0.2s;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+}
+
+.json-toggle:hover {
+    color: #0d47a1;
+}
+
+.json-toggle i {
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* JSON查看器滚动条样式 */
+#overall-json-viewer::-webkit-scrollbar,
+#detail-json-viewer::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+#overall-json-viewer::-webkit-scrollbar-track,
+#detail-json-viewer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#overall-json-viewer::-webkit-scrollbar-thumb,
+#detail-json-viewer::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+#overall-json-viewer::-webkit-scrollbar-thumb:hover,
+#detail-json-viewer::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+</style>
+
+<!-- 数据注入脚本 - Jinja2模板变量 (VS Code会报错但实际运行正常) -->
+{% if validation_json %}
+<script id="validation-data" type="application/json">{{ validation_json|safe }}</script>
+{% endif %}
+
+<script>
+// 从DOM中读取数据,避免Jinja2与JavaScript语法冲突
+const dataElement = document.getElementById('validation-data');
+const VALIDATION_JSON_DATA = dataElement ? JSON.parse(dataElement.textContent) : null;
+const HAS_VALIDATION_DATA = !!VALIDATION_JSON_DATA;
+</script>
+
+<script>
+/**
+ * 下载完整验证JSON
+ */
+function downloadValidationJson() {
+    if (!HAS_VALIDATION_DATA || !VALIDATION_JSON_DATA) {
+        alert('没有可用的验证数据');
+        return;
+    }
+    
+    try {
+        // 将JSON转换为格式化的字符串
+        const jsonString = JSON.stringify(VALIDATION_JSON_DATA, null, 2);
+        
+        // 创建Blob对象
+        const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
+        
+        // 创建下载链接
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // 生成文件名（使用当前时间戳）
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const fileName = `reference_validation_${timestamp}.json`;
+        link.download = fileName;
+        
+        // 触发下载
+        document.body.appendChild(link);
+        link.click();
+        
+        // 清理
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        // 显示成功提示 - 使用系统统一的Toast
+        if (typeof showAlert === 'function') {
+            showAlert('success', 'JSON验证报告已成功下载');
+        }
+    } catch (error) {
+        console.error('下载JSON失败:', error);
+        if (typeof showAlert === 'function') {
+            showAlert('danger', '下载失败: ' + error.message);
+        } else {
+            alert('下载失败: ' + error.message);
+        }
+    }
+}
+
+// ============ JSON树状结构渲染函数 - 完全复用comprehensive_processor.html ============
+
+/**
+ * HTML转义函数
+ * @param {string} text - 要转义的文本
+ * @returns {string} - 转义后的文本
+ */
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+/**
+ * 渲染JSON树结构
+ * @param {*} obj - 要渲染的对象
+ * @param {string} path - 当前路径
+ * @param {number} level - 当前层级
+ * @returns {string} - HTML字符串
+ */
+function renderJSONTree(obj, path = '', level = 0) {
+    if (obj === null) {
+        return '<span class="json-null">null</span>';
+    }
+    
+    if (obj === undefined) {
+        return '<span class="json-null">undefined</span>';
+    }
+    
+    if (typeof obj === 'string') {
+        return `<span class="json-string">"${escapeHtml(obj)}"</span>`;
+    }
+    
+    if (typeof obj === 'number') {
+        return `<span class="json-number">${obj}</span>`;
+    }
+    
+    if (typeof obj === 'boolean') {
+        return `<span class="json-boolean">${obj}</span>`;
+    }
+    
+    if (Array.isArray(obj)) {
+        if (obj.length === 0) {
+            return '<span class="json-bracket">[ ]</span>';
+        }
+        
+        const id = 'array_' + Math.random().toString(36).substr(2, 9);
+        // level>=1的所有层级默认收起，需要用户手动展开
+        const isCollapsed = level >= 1;
+        const toggleIcon = isCollapsed ? '<i class="ri-arrow-right-s-line"></i>' : '<i class="ri-arrow-down-s-line"></i>';
+        const displayStyle = isCollapsed ? ' style="display: none;"' : '';
+        const collapsedClass = isCollapsed ? ' collapsed' : '';
+        
+        let html = `<span class="json-toggle${collapsedClass}" data-level="${level}" onclick="toggleJsonCollapse('${id}', this)">${toggleIcon}</span>`;
+        html += `<span class="json-bracket">[${obj.length}]</span><br>`;
+        html += `<div class="json-array" id="${id}"${displayStyle}>`;
+        
+        obj.forEach((item, index) => {
+            const itemPath = path + '[' + index + ']';
+            html += `<div class="json-line">`;
+            html += `<span class="json-key">[${index}]</span>: `;
+            html += renderJSONTree(item, itemPath, level + 1);
+            html += `</div>`;
+        });
+        
+        html += `</div>`;
+        return html;
+    }
+    
+    if (typeof obj === 'object') {
+        const keys = Object.keys(obj);
+        
+        if (keys.length === 0) {
+            return '<span class="json-bracket">{ }</span>';
+        }
+        
+        const id = 'object_' + Math.random().toString(36).substr(2, 9);
+        // level>=1的所有层级默认收起，需要用户手动展开
+        const isCollapsed = level >= 1;
+        const toggleIcon = isCollapsed ? '<i class="ri-arrow-right-s-line"></i>' : '<i class="ri-arrow-down-s-line"></i>';
+        const displayStyle = isCollapsed ? ' style="display: none;"' : '';
+        const collapsedClass = isCollapsed ? ' collapsed' : '';
+        
+        let html = `<span class="json-toggle${collapsedClass}" data-level="${level}" onclick="toggleJsonCollapse('${id}', this)">${toggleIcon}</span>`;
+        html += `<span class="json-bracket">{${keys.length}}</span><br>`;
+        html += `<div class="json-object" id="${id}"${displayStyle}>`;
+        
+        keys.forEach(key => {
+            const keyPath = path + '.' + key;
+            html += `<div class="json-line">`;
+            html += `<span class="json-key">${escapeHtml(key)}</span>: `;
+            html += renderJSONTree(obj[key], keyPath, level + 1);
+            html += `</div>`;
+        });
+        
+        html += `</div>`;
+        return html;
+    }
+    
+    return '<span class="json-null">unknown</span>';
+}
+
+/**
+ * 切换JSON树节点的折叠/展开状态
+ * @param {string} elementId - 元素ID
+ * @param {HTMLElement} toggleElement - 切换按钮元素
+ */
+function toggleJsonCollapse(elementId, toggleElement) {
+    const element = document.getElementById(elementId);
+    
+    if (element.style.display === 'none') {
+        element.style.display = 'block';
+        toggleElement.classList.remove('collapsed');
+        toggleElement.innerHTML = '<i class="ri-arrow-down-s-line"></i>';
+    } else {
+        element.style.display = 'none';
+        toggleElement.classList.add('collapsed');
+        toggleElement.innerHTML = '<i class="ri-arrow-right-s-line"></i>';
+    }
+}
+
+/**
+ * 展开所有JSON节点
+ * @param {string} viewerId - JSON查看器的容器ID
+ */
+function expandAllJson(viewerId) {
+    const viewer = document.getElementById(viewerId);
+    const allToggles = viewer.querySelectorAll('.json-toggle');
+    
+    allToggles.forEach(toggle => {
+        const targetId = toggle.getAttribute('onclick').match(/'([^']+)'/)[1];
+        const element = document.getElementById(targetId);
+        
+        if (element && element.style.display === 'none') {
+            element.style.display = 'block';
+            toggle.classList.remove('collapsed');
+            toggle.innerHTML = '<i class="ri-arrow-down-s-line"></i>';
+        }
+    });
+}
+
+/**
+ * 收起所有JSON节点
+ * @param {string} viewerId - JSON查看器的容器ID
+ */
+function collapseAllJson(viewerId) {
+    const viewer = document.getElementById(viewerId);
+    const allToggles = viewer.querySelectorAll('.json-toggle');
+    
+    allToggles.forEach(toggle => {
+        const level = parseInt(toggle.getAttribute('data-level'));
+        
+        // 只收起level>=1的节点（保持顶层level=0展开）
+        if (level >= 1) {
+            const targetId = toggle.getAttribute('onclick').match(/'([^']+)'/)[1];
+            const element = document.getElementById(targetId);
+            
+            if (element && element.style.display !== 'none') {
+                element.style.display = 'none';
+                toggle.classList.add('collapsed');
+                toggle.innerHTML = '<i class="ri-arrow-right-s-line"></i>';
+            }
+        }
+    });
+}
+
+
+
+/**
+ * 渲染元素呈现表格
+ * @param {Object|null} refValidation - 单条参考文献的验证数据
+ */
+function renderElementsTable(refValidation) {
+    const tableContainer = document.getElementById('detail-elements-table');
+    
+    if (!refValidation || !refValidation.parsed_data) {
+        tableContainer.innerHTML = '<div class="text-center text-muted py-2"><i class="ri-information-line me-2"></i>暂无元素信息</div>';
+        return;
+    }
+    
+    const parsedData = refValidation.parsed_data;
+    
+    // 获取文献类型标识符和中文名称
+    let documentTypeCode = parsedData.document_type || '未知';
+    let documentTypeName = documentTypeCode;
+    
+    // 文献类型代码映射（与后端reference_validator.py的required_fields完全一致 + DOI全部必备的额外要求）
+    const documentTypeMap = {
+        // 期刊文章 [J] - 4.4连续出版物中的析出文献（无需出版地）
+        'journal_article': { code: 'J', name: '期刊文章', 
+            required: ['authors', 'title', 'journal', 'publish_year', 'doi'], 
+            optional: ['volume', 'issue', 'pages'] },
+        'J': { code: 'J', name: '期刊文章', 
+            required: ['authors', 'title', 'journal', 'publish_year', 'doi'], 
+            optional: ['volume', 'issue', 'pages'] },
+        
+        // 专著 [M] - 4.1专著
+        'book': { code: 'M', name: '专著', 
+            required: ['authors', 'title', 'publish_place', 'publisher', 'publish_year', 'doi'], 
+            optional: ['edition', 'other_contributors'] },
+        'M': { code: 'M', name: '专著', 
+            required: ['authors', 'title', 'publish_place', 'publisher', 'publish_year', 'doi'], 
+            optional: ['edition', 'other_contributors'] },
+        
+        // 会议论文集 [C] - 4.1专著（按标准与M相同，不强制要求host_title和pages）
+        'conference': { code: 'C', name: '会议论文集', 
+            required: ['authors', 'title', 'publish_place', 'publisher', 'publish_year', 'doi'], 
+            optional: ['conference_name', 'conference_location', 'conference_date', 'conference_editors', 'host_title', 'pages'] },
+        'C': { code: 'C', name: '会议论文集', 
+            required: ['authors', 'title', 'publish_place', 'publisher', 'publish_year', 'doi'], 
+            optional: ['conference_name', 'conference_location', 'conference_date', 'conference_editors', 'host_title', 'pages'] },
+        
+        // 学位论文 [D] - 4.1专著（publisher改为school）
+        'thesis': { code: 'D', name: '学位论文', 
+            required: ['authors', 'title', 'publish_place', 'school', 'publish_year', 'doi'], 
+            optional: ['edition'] },
+        'D': { code: 'D', name: '学位论文', 
+            required: ['authors', 'title', 'publish_place', 'school', 'publish_year', 'doi'], 
+            optional: ['edition'] },
+        
+        // 报告 [R] - 4.1专著
+        'report': { code: 'R', name: '报告', 
+            required: ['authors', 'title', 'publish_place', 'publisher', 'publish_year', 'doi'], 
+            optional: ['report_number'] },
+        'R': { code: 'R', name: '报告', 
+            required: ['authors', 'title', 'publish_place', 'publisher', 'publish_year', 'doi'], 
+            optional: ['report_number'] },
+        
+        // 标准 [S] - 4.1专著
+        'standard': { code: 'S', name: '标准', 
+            required: ['title', 'standard_number', 'publish_place', 'publisher', 'publish_year', 'doi'], 
+            optional: ['authors'] },
+        'S': { code: 'S', name: '标准', 
+            required: ['title', 'standard_number', 'publish_place', 'publisher', 'publish_year', 'doi'], 
+            optional: ['authors'] },
+        
+        // 专利 [P] - 4.5专利文献（patent_country改为任选）
+        'patent': { code: 'P', name: '专利', 
+            required: ['authors', 'title', 'patent_number', 'patent_date', 'doi'], 
+            optional: ['patent_country', 'patent_type'] },
+        'P': { code: 'P', name: '专利', 
+            required: ['authors', 'title', 'patent_number', 'patent_date', 'doi'], 
+            optional: ['patent_country', 'patent_type'] },
+        
+        // 报纸 [N] - 4.4连续出版物中的析出文献（无需出版地）
+        'newspaper': { code: 'N', name: '报纸', 
+            required: ['authors', 'title', 'journal', 'newspaper_date', 'doi'], 
+            optional: ['newspaper_edition'] },
+        'N': { code: 'N', name: '报纸', 
+            required: ['authors', 'title', 'journal', 'newspaper_date', 'doi'], 
+            optional: ['newspaper_edition'] },
+        
+        // 析出文献 [A] - 4.2专著中的析出文献（页码必备！）
+        'analytical': { code: 'A', name: '析出文献', 
+            required: ['authors', 'title', 'host_title', 'publish_place', 'publisher', 'publish_year', 'pages', 'doi'], 
+            optional: ['analytical_title', 'other_contributors'] },
+        'A': { code: 'A', name: '析出文献', 
+            required: ['authors', 'title', 'host_title', 'publish_place', 'publisher', 'publish_year', 'pages', 'doi'], 
+            optional: ['analytical_title', 'other_contributors'] },
+        
+        // 舆图 [CM] - 4.1专著（后端定义）
+        'archive': { code: 'CM', name: '舆图', 
+            required: ['authors', 'title', 'publish_place', 'publisher', 'publish_year', 'doi'], 
+            optional: ['archive_location', 'archive_holder', 'archive_number'] },
+        'CM': { code: 'CM', name: '舆图', 
+            required: ['authors', 'title', 'publish_place', 'publisher', 'publish_year', 'doi'], 
+            optional: ['archive_location', 'archive_holder', 'archive_number'] },
+        
+        // 数据集 [DS] - 4.6电子资源（无需出版地，URL+引用日期必备）
+        'dataset': { code: 'DS', name: '数据集', 
+            required: ['authors', 'title', 'url', 'access_date', 'doi'], 
+            optional: ['version', 'publisher', 'publish_year'] },
+        'DS': { code: 'DS', name: '数据集', 
+            required: ['authors', 'title', 'url', 'access_date', 'doi'], 
+            optional: ['version', 'publisher', 'publish_year'] },
+        
+        // 联机数据库 [DB/OL] - 4.6电子资源（无需出版地）
+        'online_database': { code: 'DB/OL', name: '联机数据库', 
+            required: ['authors', 'title', 'url', 'access_date', 'doi'], 
+            optional: ['publisher', 'publish_year'] },
+        'DB/OL': { code: 'DB/OL', name: '联机数据库', 
+            required: ['authors', 'title', 'url', 'access_date', 'doi'], 
+            optional: ['publisher', 'publish_year'] },
+        
+        // 电子公告 [EB/OL] - 4.6电子资源（无需出版地）
+        'EB/OL': { code: 'EB/OL', name: '电子公告', 
+            required: ['authors', 'title', 'url', 'access_date', 'doi'], 
+            optional: ['publisher', 'publish_year'] },
+        
+        // 电子计算机程序 [CP/OL] - 4.6电子资源（无需出版地）
+        'CP/OL': { code: 'CP/OL', name: '电子计算机程序', 
+            required: ['authors', 'title', 'url', 'access_date', 'doi'], 
+            optional: ['publisher', 'publish_year'] },
+        
+        // 电子专著 [M/OL] - 4.6电子资源（无需出版地）
+        'M/OL': { code: 'M/OL', name: '电子专著', 
+            required: ['authors', 'title', 'url', 'access_date', 'doi'], 
+            optional: ['publisher', 'publish_year', 'edition'] },
+        
+        // 电子期刊 [J/OL] - 4.6电子资源（需期刊名、年份、URL、引用日期）
+        'J/OL': { code: 'J/OL', name: '电子期刊', 
+            required: ['authors', 'title', 'journal', 'publish_year', 'url', 'access_date', 'doi'], 
+            optional: ['volume', 'issue', 'pages'] },
+        
+        // 网络文献 [OL] - 4.6电子资源（无需出版地）
+        'online': { code: 'OL', name: '网络文献', 
+            required: ['authors', 'title', 'url', 'access_date', 'doi'], 
+            optional: ['website_name', 'publish_year'] },
+        'OL': { code: 'OL', name: '网络文献', 
+            required: ['authors', 'title', 'url', 'access_date', 'doi'], 
+            optional: ['website_name', 'publish_year'] },
+        
+        // 其他 [Z]（最小要求）
+        'other': { code: 'Z', name: '其他', 
+            required: ['authors', 'title', 'doi'], 
+            optional: ['publisher', 'publish_year'] },
+        'Z': { code: 'Z', name: '其他', 
+            required: ['authors', 'title', 'doi'], 
+            optional: ['publisher', 'publish_year'] }
+    };
+    
+    // 字段中文名称映射（完整映射LLM返回的所有字段）
+    const fieldNameMap = {
+        // 基本信息字段
+        'authors': '主要责任者',
+        'title': '题名',
+        'document_type': '文献类型',
+        
+        // 出版信息字段
+        'publisher': '出版者',
+        'publish_place': '出版地',
+        'publish_year': '出版年',
+        
+        // 期刊相关字段
+        'journal': '期刊名/报纸名',
+        'volume': '卷号',
+        'issue': '期号',
+        'pages': '页码',
+        
+        // 标识符字段
+        'doi': 'DOI',
+        'url': '获取和访问路径',
+        'access_date': '引用日期',
+        
+        // 特殊文献类型字段
+        'standard_number': '标准编号',
+        'school': '保存单位/学校',
+        'host_title': '出处文献题名',
+        'analytical_title': '析出文献题名',
+        'other_contributors': '其他责任者',
+        'edition': '版本项',
+        
+        // 会议论文字段
+        'conference_name': '会议名称',
+        'conference_location': '会议地点',
+        'conference_date': '会议时间',
+        'conference_editors': '会议论文集编者',
+        
+        // 报告字段
+        'report_number': '报告编号',
+        
+        // 报纸字段
+        'newspaper_date': '出版日期',
+        'newspaper_edition': '报纸版次',
+        
+        // 档案文献字段
+        'archive_location': '档案保存地',
+        'archive_holder': '档案馆名称',
+        'archive_number': '档案号',
+        
+        // 专利字段
+        'patent_number': '专利号',
+        'patent_date': '专利公告日期',
+        'patent_type': '专利类型',
+        'patent_country': '专利国别',
+        
+        // 数据集字段
+        'version': '版本号',
+        'website_name': '网站名称',
+        
+        // 辅助字段
+        'author_name_types': '作者名称类型列表',
+        'journal_format_valid': '期刊格式有效性'
+    };
+    
+    // 查找对应的文献类型信息
+    let typeInfo = null;
+    for (let [key, value] of Object.entries(documentTypeMap)) {
+        if (documentTypeCode === key || documentTypeCode === value.code) {
+            typeInfo = value;
+            documentTypeName = `${value.name} [${value.code}]`;
+            break;
+        }
+    }
+    
+    if (!typeInfo) {
+        tableContainer.innerHTML = '<div class="text-center text-muted py-2"><i class="ri-information-line me-2"></i>未识别的文献类型: ' + escapeHtml(documentTypeCode) + '</div>';
+        return;
+    }
+    
+    // 合并必备和任选字段
+    const fields = [];
+    
+    // 添加必备字段
+    if (typeInfo.required && typeInfo.required.length > 0) {
+        typeInfo.required.forEach(field => {
+            const fieldValue = parsedData[field];
+            // 检查是否为 null、undefined 或字符串 "null"
+            const isNull = fieldValue === null || fieldValue === undefined || fieldValue === "null";
+            fields.push({
+                name: fieldNameMap[field] || field,
+                type: '必备',
+                value: !isNull ? fieldValue : '(未提取到)',
+                fieldKey: field
+            });
+        });
+    }
+    
+    // 添加任选字段
+    if (typeInfo.optional && typeInfo.optional.length > 0) {
+        typeInfo.optional.forEach(field => {
+            const fieldValue = parsedData[field];
+            // 检查是否为 null、undefined 或字符串 "null"
+            const isNull = fieldValue === null || fieldValue === undefined || fieldValue === "null";
+            fields.push({
+                name: fieldNameMap[field] || field,
+                type: '任选',
+                value: !isNull ? fieldValue : '(未提取到)',
+                fieldKey: field
+            });
+        });
+    }
+    
+    if (fields.length === 0) {
+        tableContainer.innerHTML = '<div class="text-center text-muted py-2"><i class="ri-information-line me-2"></i>该文献类型无定义字段</div>';
+        return;
+    }
+    
+    // 构建表格HTML
+    let tableHtml = '<table class="table table-sm table-bordered mb-0" style="font-size: 0.875rem;">';
+    tableHtml += '<thead><tr><th colspan="2" class="text-center bg-primary text-white"><strong>' + escapeHtml(documentTypeName) + '</strong></th></tr></thead>';
+    tableHtml += '<tbody>';
+    
+    // 每行显示一个字段（改为单列，显示字段名和值）
+    fields.forEach(field => {
+        tableHtml += '<tr>';
+        
+        // 字段名列
+        const typeClass = field.type === '必备' ? 'text-danger' : 'text-info';
+        const typeBgClass = field.type === '必备' ? 'bg-danger-transparent' : 'bg-info-transparent';
+        tableHtml += '<td class="' + typeBgClass + '" style="width: 40%;"><span class="' + typeClass + ' fw-bold">[' + field.type + ']</span> ' + escapeHtml(field.name) + '</td>';
+        
+        // 字段值列
+        // 检查是否为空值（包括 null、"null"、undefined、空字符串）
+        const isEmptyValue = field.value === '(未提取到)' || field.value === null || field.value === "null" || field.value === undefined || field.value === '';
+        const valueClass = isEmptyValue ? 'text-muted fst-italic' : '';
+        const displayValue = isEmptyValue ? '(未提取到)' : String(field.value);
+        tableHtml += '<td class="' + valueClass + '" style="width: 60%;">' + escapeHtml(displayValue) + '</td>';
+        
+        tableHtml += '</tr>';
+    });
+    
+    tableHtml += '</tbody></table>';
+    
+    tableContainer.innerHTML = tableHtml;
+}
+
+// ============ 原有的页面初始化逻辑 ============
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取验证数据 - 使用预定义的全局变量
+    const validationData = VALIDATION_JSON_DATA || {};
+    
+    // 应用参考文献状态颜色
+    function applyReferenceStatusColors() {
+        const referenceItems = document.querySelectorAll('.reference-item');
+        
+        referenceItems.forEach((item, index) => {
+            const refType = item.getAttribute('data-ref-type');
+            const refIndex = parseInt(item.getAttribute('data-ref-index'));
+            
+            // 计算在验证数据中的全局索引
+            let globalIndex = refIndex;
+            if (refType === 'review') {
+                const reportCount = document.querySelectorAll('.reference-item[data-ref-type="report"]').length;
+                globalIndex = refIndex + reportCount;
+            }
+            
+            // 查找对应的验证信息
+            let refValidation = null;
+            if (validationData && validationData.references) {
+                refValidation = validationData.references.find(ref => 
+                    ref.index === globalIndex + 1 || ref.id === `ref_${globalIndex + 1}`
+                );
+            }
+            
+            // 应用状态颜色
+            if (refValidation) {
+                const hasErrors = refValidation.errors && refValidation.errors.length > 0;
+                
+                if (hasErrors) {
+                    item.classList.add('status-error');
+                    item.setAttribute('data-status', 'error');
+                } else {
+                    // 只有提示信息的情况下归类为正确（绿色显示）
+                    item.classList.add('status-correct');
+                    item.setAttribute('data-status', 'correct');
+                }
+            } else {
+                // 没有验证数据时默认为正确状态
+                item.classList.add('status-correct');
+                item.setAttribute('data-status', 'correct');
+            }
+        });
+    }
+    
+    // 应用状态颜色
+    applyReferenceStatusColors();
+
+    // 状态筛选器逻辑 - 为报告参考文献和综述参考文献分别设置
+    const reportFilterGroup = document.getElementById('report-status-filter-group');
+    const reviewFilterGroup = document.getElementById('review-status-filter-group');
+    
+    // 通用筛选函数
+    function setupStatusFilter(filterGroup, refType) {
+        if (!filterGroup) return;
+        
+        filterGroup.addEventListener('click', function(e) {
+            let target = e.target;
+            // 兼容点击到内部元素
+            while (target && !target.classList.contains('status-filter-item') && target !== filterGroup) {
+                target = target.parentElement;
+            }
+            if (target && target.classList.contains('status-filter-item')) {
+                // 切换选中
+                filterGroup.querySelectorAll('.status-filter-item').forEach(item => item.classList.remove('selected'));
+                target.classList.add('selected');
+                const filter = target.getAttribute('data-filter');
+                
+                // 取消错误类型筛选器的选中状态
+                const errorFilterItems = document.querySelectorAll('.error-filter-item');
+                errorFilterItems.forEach(item => item.classList.remove('active'));
+                
+                // 筛选指定类型的参考文献
+                const referenceItems = document.querySelectorAll(`.reference-item[data-ref-type="${refType}"]`);
+                let visibleIndex = 1;
+                
+                // 如果是综述参考文献，需要获取报告参考文献的数量作为起始索引
+                let startIndex = 1;
+                if (refType === 'review') {
+                    const reportCount = document.querySelectorAll('.reference-item[data-ref-type="report"]').length;
+                    startIndex = reportCount + 1;
+                    visibleIndex = startIndex;
+                }
+                
+                referenceItems.forEach(item => {
+                    const parentWrapper = item.parentElement;
+                    const numberSpan = parentWrapper ? parentWrapper.querySelector('span.badge') : null;
+                    const itemStatus = item.getAttribute('data-status');
+                    let shouldShow = false;
+                    
+                    if (filter === 'all') {
+                        // 显示所有项
+                        shouldShow = true;
+                    } else if (filter === 'correct') {
+                        // "正确"包括所有没有错误的项（即状态不是 'error'）
+                        shouldShow = (itemStatus !== 'error');
+                    } else if (filter === 'error') {
+                        // 只显示错误项
+                        shouldShow = (itemStatus === 'error');
+                    }
+                    
+                    if (shouldShow) {
+                        if (parentWrapper) {
+                            parentWrapper.classList.remove('hidden');
+                        }
+                        if (numberSpan) {
+                            numberSpan.textContent = visibleIndex++;
+                        }
+                    } else {
+                        if (parentWrapper) {
+                            parentWrapper.classList.add('hidden');
+                        }
+                    }
+                });
+            }
+        });
+    }
+    
+    // 为报告参考文献和综述参考文献分别设置筛选器
+    setupStatusFilter(reportFilterGroup, 'report');
+    setupStatusFilter(reviewFilterGroup, 'review');
+    
+    // 错误类型筛选器逻辑
+    const errorFilterItems = document.querySelectorAll('.error-filter-item');
+    if (errorFilterItems.length > 0) {
+        errorFilterItems.forEach(errorItem => {
+            errorItem.addEventListener('click', function() {
+                const errorType = this.getAttribute('data-error-type');
+                
+                // 切换选中状态
+                const isActive = this.classList.contains('active');
+                errorFilterItems.forEach(item => item.classList.remove('active'));
+                
+                if (!isActive) {
+                    this.classList.add('active');
+                    // 筛选包含该错误类型的参考文献
+                    filterByErrorType(errorType);
+                } else {
+                    // 取消筛选，显示所有
+                    filterByErrorType(null);
+                }
+            });
+        });
+    }
+    
+    // 根据错误类型筛选参考文献（对两个容器都生效）
+    function filterByErrorType(errorType) {
+        // 分别处理报告和综述参考文献
+        const reportItems = document.querySelectorAll('.reference-item[data-ref-type="report"]');
+        const reviewItems = document.querySelectorAll('.reference-item[data-ref-type="review"]');
+        
+        let reportVisibleIndex = 1;
+        let reviewVisibleIndex = 1;
+        const reportCount = reportItems.length;
+        
+        // 处理报告参考文献
+        reportItems.forEach(item => {
+            const parentWrapper = item.parentElement;
+            const numberSpan = parentWrapper ? parentWrapper.querySelector('span.badge') : null;
+            const refIndex = parseInt(item.getAttribute('data-ref-index'));
+            const globalIndex = refIndex;
+            
+            let shouldShow = false;
+            
+            if (!errorType) {
+                shouldShow = true;
+            } else {
+                if (validationData && validationData.references) {
+                    const refValidation = validationData.references.find(ref => 
+                        ref.index === globalIndex + 1 || ref.id === `ref_${globalIndex + 1}`
+                    );
+                    
+                    if (refValidation && refValidation.errors) {
+                        shouldShow = refValidation.errors.some(err => err.type === errorType);
+                    }
+                }
+            }
+            
+            if (shouldShow) {
+                if (parentWrapper) {
+                    parentWrapper.classList.remove('hidden');
+                }
+                if (numberSpan) {
+                    numberSpan.textContent = reportVisibleIndex++;
+                }
+            } else {
+                if (parentWrapper) {
+                    parentWrapper.classList.add('hidden');
+                }
+            }
+        });
+        
+        // 处理综述参考文献
+        reviewItems.forEach(item => {
+            const parentWrapper = item.parentElement;
+            const numberSpan = parentWrapper ? parentWrapper.querySelector('span.badge') : null;
+            const refIndex = parseInt(item.getAttribute('data-ref-index'));
+            const globalIndex = refIndex + reportCount;
+            
+            let shouldShow = false;
+            
+            if (!errorType) {
+                shouldShow = true;
+            } else {
+                if (validationData && validationData.references) {
+                    const refValidation = validationData.references.find(ref => 
+                        ref.index === globalIndex + 1 || ref.id === `ref_${globalIndex + 1}`
+                    );
+                    
+                    if (refValidation && refValidation.errors) {
+                        shouldShow = refValidation.errors.some(err => err.type === errorType);
+                    }
+                }
+            }
+            
+            if (shouldShow) {
+                if (parentWrapper) {
+                    parentWrapper.classList.remove('hidden');
+                }
+                if (numberSpan) {
+                    numberSpan.textContent = reportCount + reviewVisibleIndex++;
+                }
+            } else {
+                if (parentWrapper) {
+                    parentWrapper.classList.add('hidden');
+                }
+            }
+        });
+        
+        // 如果有错误类型筛选，同时取消两个状态筛选器的选中状态
+        if (errorType) {
+            if (reportFilterGroup) {
+                reportFilterGroup.querySelectorAll('.status-filter-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+            }
+            if (reviewFilterGroup) {
+                reviewFilterGroup.querySelectorAll('.status-filter-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+            }
+        }
+    }
+    
+    // 点击参考文献条目的交互
+    const referenceItems = document.querySelectorAll('.reference-item');
+    const defaultPrompt = document.getElementById('default-prompt');
+    const referenceDetail = document.getElementById('reference-detail');
+
+    referenceItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // 移除其他选中状态
+            referenceItems.forEach(i => i.classList.remove('selected'));
+            // 添加选中状态
+            this.classList.add('selected');
+            // 切换到详情面板
+            if (defaultPrompt) defaultPrompt.style.display = 'none';
+            referenceDetail.style.display = 'block';
+            // 获取参考文献信息
+            const refIndex = parseInt(this.getAttribute('data-ref-index'));
+            const refType = this.getAttribute('data-ref-type');
+            // 只取正文（不含系统编号）
+            const refContent = this.querySelector('small.text-muted').textContent.trim();
+            // 更新基本信息
+            document.getElementById('detail-original').textContent = refContent;
+            // 查找对应的验证信息
+            let refValidation = null;
+            if (validationData && validationData.references) {
+                // 计算在验证数据中的索引
+                let validationIndex = refIndex;
+                if (refType === 'review') {
+                    // 如果是综述参考文献，需要加上报告参考文献的数量
+                    const reportCount = document.querySelectorAll('.reference-item[data-ref-type="report"]').length;
+                    validationIndex = refIndex + reportCount;
+                }
+                refValidation = validationData.references.find(ref => 
+                    ref.index === validationIndex + 1 || ref.id === `ref_${validationIndex + 1}`
+                );
+            }
+            if (refValidation) {
+                // 定义L3级别（info级别）的错误代码
+                const l3ErrorCodes = new Set([
+                    'G.L3.01', 'G.L3.02', 'G.L3.03', 'G.L3.04', 'G.L3.05', 'G.L3.06', 'G.L3.07',
+                    'M.L3.01', 'M.L3.02',
+                    'J.L3.01', 'J.L3.02',
+                    'N.L3.01', 'N.L3.02',
+                    'A.L3.01', 'A.L3.02',
+                    'P.L3.01', 'P.L3.02',
+                    'S.L3.01',
+                    'D.L3.01',
+                    'C.L3.01', 'C.L3.02', 'C.L3.03',
+                    'R.L3.01',
+                    'E.L3.01', 'E.L3.02',
+                    'Archive.L3.01', 'Archive.L3.02'
+                ]);
+                
+                /**
+                 * 获取错误代码的优先级（数字越小优先级越高）
+                 * L1 > L2 > L3，同级别内按编号排序
+                 */
+                function getErrorPriority(errorCode) {
+                    if (!errorCode) return 9999;
+                    
+                    // 解析错误代码格式：前缀.L级别.编号
+                    const match = errorCode.match(/^([A-Za-z]+)\.L([123])\.(\d+)$/);
+                    if (!match) return 9999;
+                    
+                    const [, prefix, level, number] = match;
+                    
+                    // 计算优先级：L1=1000, L2=2000, L3=3000，再加上编号
+                    const levelPriority = parseInt(level) * 1000;
+                    const numPriority = parseInt(number);
+                    
+                    return levelPriority + numPriority;
+                }
+                
+                // 分类错误：error级别（L1/L2）和 info级别（L3）
+                const criticalErrors = [];
+                const infoSuggestions = [];
+                
+                if (refValidation.errors && refValidation.errors.length > 0) {
+                    refValidation.errors.forEach(error => {
+                        const errorCode = error.type_code || error.type || error.error_type;
+                        if (errorCode && l3ErrorCodes.has(errorCode)) {
+                            // L3级别 -> info建议
+                            infoSuggestions.push(error);
+                        } else {
+                            // L1/L2级别 -> error错误
+                            criticalErrors.push(error);
+                        }
+                    });
+                }
+                
+                // 添加原有的infos到建议列表
+                if (refValidation.infos && refValidation.infos.length > 0) {
+                    infoSuggestions.push(...refValidation.infos);
+                }
+                
+                // 按规则优先级排序
+                criticalErrors.sort((a, b) => {
+                    const codeA = a.type_code || a.type || a.error_type || '';
+                    const codeB = b.type_code || b.type || b.error_type || '';
+                    return getErrorPriority(codeA) - getErrorPriority(codeB);
+                });
+                
+                infoSuggestions.sort((a, b) => {
+                    const codeA = a.type_code || a.type || a.error_type || '';
+                    const codeB = b.type_code || b.type || b.error_type || '';
+                    return getErrorPriority(codeA) - getErrorPriority(codeB);
+                });
+                
+                // 显示/隐藏各个区域
+                const errorsSection = document.getElementById('detail-errors-section');
+                const errorsList = document.getElementById('detail-errors-list');
+                const infosSection = document.getElementById('detail-infos-section');
+                const infosList = document.getElementById('detail-infos-list');
+                const correctSection = document.getElementById('detail-correct-section');
+                
+                // 渲染核心错误 (error级别)
+                if (criticalErrors.length > 0) {
+                    errorsSection.style.display = 'block';
+                    errorsList.innerHTML = criticalErrors.map((error, index) => {
+                        const errorCode = error.type_code || error.type || error.error_type || '';
+                        return `
+                            <div class="mb-2 pb-2 ${index < criticalErrors.length - 1 ? 'border-bottom' : ''}">
+                                <div class="d-flex align-items-start">
+                                    <i class="ri-close-circle-fill text-danger me-2 mt-1"></i>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <strong class="text-danger">${index + 1}. ${error.message || '未知错误'}</strong>
+                                            ${errorCode ? `<span class="badge bg-danger-transparent text-danger ms-2">${errorCode}</span>` : ''}
+                                        </div>
+                                        ${error.suggestion ? `<div class="text-muted ms-3 mt-1"><i class="ri-lightbulb-line me-1"></i>${error.suggestion}</div>` : ''}
+                                        ${error.correct_format ? `<div class="text-success ms-3 mt-1"><i class="ri-check-line me-1"></i>正确格式：${error.correct_format}</div>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    errorsSection.style.display = 'none';
+                }
+                
+                // 渲染格式建议 (info级别)
+                if (infoSuggestions.length > 0) {
+                    infosSection.style.display = 'block';
+                    infosList.innerHTML = infoSuggestions.map((info, index) => {
+                        const infoCode = info.type_code || info.type || info.error_type || '';
+                        return `
+                            <div class="mb-2 pb-2 ${index < infoSuggestions.length - 1 ? 'border-bottom' : ''}">
+                                <div class="d-flex align-items-start">
+                                    <i class="ri-information-fill text-info me-2 mt-1"></i>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <strong class="text-info">${index + 1}. ${info.message || '建议信息'}</strong>
+                                            ${infoCode ? `<span class="badge bg-info-transparent text-info ms-2">${infoCode}</span>` : ''}
+                                        </div>
+                                        ${info.suggestion ? `<div class="text-muted ms-3 mt-1"><i class="ri-lightbulb-line me-1"></i>${info.suggestion}</div>` : ''}
+                                        ${info.correct_format ? `<div class="text-success ms-3 mt-1"><i class="ri-check-line me-1"></i>建议格式：${info.correct_format}</div>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    infosSection.style.display = 'none';
+                }
+                
+                // 如果既没有错误也没有建议，显示正确提示
+                if (criticalErrors.length === 0 && infoSuggestions.length === 0) {
+                    correctSection.style.display = 'block';
+                    errorsSection.style.display = 'none';
+                    infosSection.style.display = 'none';
+                } else {
+                    correctSection.style.display = 'none';
+                }
+                
+                // 渲染元素呈现表格
+                renderElementsTable(refValidation);
+            } else {
+                // 没有验证信息的情况 - 隐藏所有区域
+                document.getElementById('detail-errors-section').style.display = 'none';
+                document.getElementById('detail-infos-section').style.display = 'none';
+                document.getElementById('detail-correct-section').style.display = 'none';
+                
+                // 显示无数据提示
+                renderElementsTable(null);
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %}

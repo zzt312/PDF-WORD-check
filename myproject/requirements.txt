@@ -1,0 +1,61 @@
+# PDF转MD系统核心依赖包
+
+# Web框架
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# CSRF防护
+Flask-WTF==1.2.2
+
+# 数据库
+PyMySQL==1.1.0
+
+# HTTP请求
+requests==2.31.0
+
+# JSON容错修复
+json-repair==0.30.2
+
+# 密码安全
+bcrypt==4.0.1
+cryptography==41.0.7
+
+# 日期时间处理
+python-dateutil==2.8.2
+
+# 二维码生成
+qrcode==7.4.2
+Pillow==10.0.1
+
+# Word文档处理 (跨平台)
+python-docx==0.8.11
+
+# Excel文件处理
+openpyxl>=3.1.0
+
+# PDF文件处理
+PyMuPDF>=1.23.0
+
+# 系统资源监控
+psutil>=5.9.0
+
+# 生产环境WSGI服务器
+gunicorn==21.2.0
+
+# 监控和管理（可选）
+supervisor==4.2.5
+
+# 注意：以下模块是Python内置模块，无需安装
+# - json (JSON处理)
+# - os (系统操作)
+# - uuid (UUID生成)
+# - time (时间处理)
+# - threading (多线程)
+# - traceback (错误追踪)
+# - zipfile (ZIP文件处理)
+# - pathlib (路径处理)
+# - typing (类型注解)
+# - datetime (日期时间)
+# - re (正则表达式)
+# - html (HTML处理)
+# - io (输入输出)

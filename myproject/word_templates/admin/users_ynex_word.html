@@ -1,0 +1,1772 @@
+{% extends "base_ynex_word.html" %}
+
+{% block title %}用户管理 - 参考文献检查系统{% endblock %}
+
+{% block head %}
+<script>
+    // 用户角色权限控制 - 设为全局变量
+    window.currentUserRole = '{{ current_user_role }}';
+    window.isFullAdmin = window.currentUserRole === 'admin';
+</script>
+<style>
+    /* 自定义样式 */
+    .user-item:hover {
+        background-color: #f8f9fa;
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
+    
+    .file-item:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    .hover-bg-light:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    .bg-gradient-primary {
+        background: linear-gradient(45deg, #6366f1, #8b5cf6) !important;
+    }
+    
+    .bg-primary-gradient {
+        background: linear-gradient(45deg, #6366f1, #8b5cf6) !important;
+    }
+    
+    .text-purple {
+        color: #8b5cf6 !important;
+    }
+    
+    .btn-ghost-light {
+        background: transparent;
+        border: none;
+        color: #6c757d;
+    }
+    
+    .btn-ghost-light:hover {
+        background-color: #f8f9fa;
+        color: #495057;
+    }
+    
+    .bg-success-transparent {
+        background-color: rgba(25, 135, 84, 0.1) !important;
+    }
+    
+    .bg-danger-transparent {
+        background-color: rgba(220, 53, 69, 0.1) !important;
+    }
+    
+    .avatar-xl {
+        width: 4rem;
+        height: 4rem;
+    }
+    
+    .avatar-lg {
+        width: 3rem;
+        height: 3rem;
+    }
+    
+    .modal-content {
+        border-radius: 0.75rem;
+    }
+    
+    .modal-header {
+        border-radius: 0.75rem 0.75rem 0 0;
+    }
+    
+    /* 批量操作相关样式 */
+    #batchControls {
+        border-left: 4px solid #0d6efd;
+        background: linear-gradient(135deg, #e3f2fd 0%, #f8f9fa 100%);
+    }
+    
+    .user-checkbox {
+        cursor: pointer;
+        transform: scale(1.1);
+    }
+    
+    .user-checkbox:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    #selectAll {
+        cursor: pointer;
+        transform: scale(1.2);
+    }
+    
+    #selectAll:indeterminate {
+        background-color: #ffc107;
+        border-color: #ffc107;
+    }
+    
+    .table th:first-child {
+        text-align: center;
+    }
+    
+    .table td:first-child {
+        text-align: center;
+    }
+    
+    .user-row.selected {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Start::page-header -->
+<div class="d-flex align-items-center my-4 page-header-breadcrumb">
+    <button type="button" class="btn btn-success btn-sm me-2" onclick="showAddUserModal()">
+        <i class="bi bi-person-plus me-1"></i>添加用户
+    </button>
+    <button type="button" class="btn btn-outline-info btn-sm me-2" onclick="refreshUserList()">
+        <i class="bi bi-arrow-clockwise me-1"></i>刷新
+    </button>
+    {% if session.get('role') == 'admin' %}
+    <div class="dropdown me-2">
+        <button class="btn btn-outline-warning btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-people me-1"></i>批量角色
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="batchSetRole('user')">设为普通用户</a></li>
+            <li><a class="dropdown-item" href="#" onclick="batchSetRole('premium')">设为高级用户</a></li>
+            <li><a class="dropdown-item" href="#" onclick="batchSetRole('admin')">设为管理员</a></li>
+        </ul>
+    </div>
+    <button type="button" class="btn btn-outline-danger btn-sm me-2" onclick="batchDeleteUsers()">
+        <i class="bi bi-trash me-1"></i>批量删除
+    </button>
+    {% endif %}
+    <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearSelection()">
+        <i class="bi bi-x-circle me-1"></i>清除选择
+    </button>
+    <span id="selectedCount" class="text-muted small ms-2">未选择</span>
+</div>
+</div>
+<!-- End::page-header -->
+
+<!-- 用户列表 -->
+<div class="row">
+    <div class="col-xl-12">
+        <div class="card custom-card">
+            <div class="card-header justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                    <small class="text-muted">
+                        显示第 {{ (current_page - 1) * per_page + 1 }} - {{ [(current_page * per_page), total_users] | min }} 条，共 {{ total_users }} 条记录
+                    </small>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary-transparent text-primary px-2 py-1" style="font-size: 11px;">
+                            <i class="bi bi-people me-1"></i>总计: {{ total_users }}
+                        </span>
+                        <span class="badge bg-success-transparent text-success px-2 py-1" style="font-size: 11px;">
+                            <i class="bi bi-person-check me-1"></i>活跃: {{ users|selectattr('is_active')|list|length }}
+                        </span>
+                        <span class="badge bg-secondary-transparent text-secondary px-2 py-1" style="font-size: 11px;">
+                            <i class="bi bi-person-x me-1"></i>禁用: {{ total_users - users|selectattr('is_active')|list|length }}
+                        </span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <label class="form-label mb-0 text-muted" style="font-size: 12px;">筛选角色：</label>
+                    <select class="form-select form-select-sm" id="roleFilter" style="width: auto; min-width: 120px;" onchange="filterUsersByRole()">
+                        <option value="all">全部角色</option>
+                        <option value="admin">管理员 ({{ users|selectattr('role', 'equalto', 'admin')|list|length }})</option>
+                        <option value="premium">高级用户 ({{ users|selectattr('role', 'equalto', 'premium')|list|length }})</option>
+                        <option value="user">普通用户 ({{ users|selectattr('role', 'equalto', 'user')|list|length }})</option>
+                    </select>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="resetRoleFilter()" title="重置筛选">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                    <div class="input-group ms-3" style="max-width: 200px;">
+                        <input type="text" class="form-control form-control-sm" 
+                               id="realTimeSearch" placeholder="搜索用户"
+                               onkeyup="realTimeSearch(this.value)">
+                        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="clearSearch()">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+                
+            </div>
+            <div class="card-body"  style="padding-top: 0;">
+                {% if users %}
+                    <div class="table-responsive" style="height: 430px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem;">
+                        <table class="table text-nowrap table-hover mb-0">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th scope="col" style="width: 40px;">
+                                        <input type="checkbox" id="selectAll" class="form-check-input" onchange="toggleSelectAll()" title="全选/取消全选">
+                                    </th>
+                                    <th scope="col">用户ID</th>
+                                    <th scope="col">用户名</th>
+                                    <th scope="col">邮箱</th>
+                                    <th scope="col">角色</th>
+                                    <th scope="col">文件数</th>
+                                    <th scope="col">注册时间</th>
+                                    <th scope="col">最后上传</th>
+                                    <th scope="col">状态</th>
+                                    <th scope="col">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                    <tr id="user-row-{{ user.id }}" 
+                                        style="cursor: pointer;" 
+                                        class="user-row"
+                                        data-user-id="{{ user.id }}"
+                                        data-username="{{ user.username }}"
+                                        data-email="{{ user.email }}"
+                                        data-file-count="{{ user.file_count or 0 }}"
+                                        data-role="{{ user.role }}">
+                                        <td onclick="event.stopPropagation()">
+                                            <input type="checkbox" class="form-check-input user-checkbox" 
+                                                   value="{{ user.id }}" 
+                                                   data-username="{{ user.username }}"
+                                                   onchange="updateBatchControls()">
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="fw-semibold">#{{ user.id }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="avatar avatar-sm avatar-rounded me-2 bg-primary-transparent">
+                                                    <i class="bi bi-person"></i>
+                                                </span>
+                                                <span class="fw-semibold">{{ user.username }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">{{ user.email }}</span>
+                                        </td>
+                                        <td>
+                                            {% if session.get('role') == 'admin' %}
+                                                <select class="form-select form-select-sm role-select" 
+                                                        data-user-id="{{ user.id }}"
+                                                        data-username="{{ user.username }}"
+                                                        style="width: auto; min-width: 90px; border: 1px solid #ddd;"
+                                                        onchange="updateUserRole(this)">
+                                                    <option value="user" {{ 'selected' if user.role == 'user' else '' }}>普通用户</option>
+                                                    <option value="premium" {{ 'selected' if user.role == 'premium' else '' }}>高级用户</option>
+                                                    <option value="admin" {{ 'selected' if user.role == 'admin' else '' }}>管理员</option>
+                                                </select>
+                                            {% else %}
+                                                <span>
+                                                    {% if user.role == 'admin' %}管理员
+                                                    {% elif user.role == 'premium' %}高级用户
+                                                    {% else %}普通用户
+                                                    {% endif %}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary-transparent">{{ user.file_count or 0 }}</span>
+                                        </td>
+                                        <td>
+                                            {% if user.created_at %}
+                                                <span class="text-muted fs-12">{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if user.last_upload %}
+                                                <span class="text-muted fs-12">{{ user.last_upload.strftime('%Y-%m-%d %H:%M') }}</span>
+                                            {% else %}
+                                                <span class="text-muted fs-12">从未上传</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span id="status-badge-{{ user.id }}" class="badge {{ 'bg-success' if user.is_active else 'bg-secondary' }}">
+                                                {{ '激活' if user.is_active else '禁用' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-list">
+                                                <button type="button" class="btn btn-sm btn-info-light btn-wave user-details-btn" 
+                                                        data-user-id="{{ user.id }}"
+                                                        title="查看详情"
+                                                        onclick="event.stopPropagation();">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                {% if session.get('role') == 'admin' %}
+                                                <button type="button" class="btn btn-sm btn-warning-light btn-wave user-toggle-btn" 
+                                                        data-user-id="{{ user.id }}"
+                                                        data-current-status="{{ user.is_active | int }}"
+                                                        id="toggle-btn-{{ user.id }}"
+                                                        title="{{ '禁用' if user.is_active else '激活' }}用户"
+                                                        onclick="event.stopPropagation();">
+                                                    <i class="bi bi-{{ 'pause' if user.is_active else 'play' }}"></i>
+                                                </button>
+                                                {% if user.role != 'admin' or users|length > 1 %}
+                                                <button type="button" class="btn btn-sm btn-danger-light btn-wave user-delete-btn" 
+                                                        data-user-id="{{ user.id }}"
+                                                        data-username="{{ user.username }}"
+                                                        title="删除用户"
+                                                        onclick="event.stopPropagation();">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                                {% endif %}
+                                                {% else %}
+                                                <span class="text-muted fs-12">只读权限</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center p-3">
+                        <span class="avatar avatar-xl avatar-rounded bg-primary-transparent">
+                            <i class="bi bi-people fs-2"></i>
+                        </span>
+                        <h6 class="fw-bold mb-1 mt-3">暂无用户数据</h6>
+                        <span class="mb-1 fw-normal fs-13 d-block">系统中还没有注册用户</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 分页导航 -->
+{% if total_pages > 1 %}
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card custom-card">
+                <div class="card-body">
+                    <nav aria-label="用户列表分页">
+                        <ul class="pagination justify-content-center mb-0">
+                            <!-- 上一页 -->
+                            {% if current_page > 1 %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('word_admin_users', page=current_page-1) }}" aria-label="上一页">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            <!-- 页码 -->
+                            {% set start_page = [1, current_page - 2] | max %}
+                            {% set end_page = [total_pages, current_page + 2] | min %}
+                            
+                            {% if start_page > 1 %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('word_admin_users', page=1) }}">1</a>
+                                </li>
+                                {% if start_page > 2 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endif %}
+
+                            {% for page_num in range(start_page, end_page + 1) %}
+                                <li class="page-item {{ 'active' if page_num == current_page else '' }}">
+                                    <a class="page-link" href="{{ url_for('word_admin_users', page=page_num) }}">{{ page_num }}</a>
+                                </li>
+                            {% endfor %}
+
+                            {% if end_page < total_pages %}
+                                {% if end_page < total_pages - 1 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('word_admin_users', page=total_pages) }}">{{ total_pages }}</a>
+                                </li>
+                            {% endif %}
+
+                            <!-- 下一页 -->
+                            {% if current_page < total_pages %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('word_admin_users', page=current_page+1) }}" aria-label="下一页">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 页面加载完成后初始化事件监听器
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化角色下拉选择的备份值
+    document.querySelectorAll('.role-select').forEach(select => {
+        select.setAttribute('data-previous-value', select.value);
+        
+        // 防止角色选择下拉框点击事件冒泡到父行
+        select.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        
+        // 防止角色选择变化事件冒泡到父行
+        select.addEventListener('change', function(e) {
+            e.stopPropagation();
+        });
+    });
+    
+    // 用户行点击事件
+    document.querySelectorAll('.user-row').forEach(row => {
+        row.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const username = this.dataset.username;
+            const email = this.dataset.email;
+            const fileCount = this.dataset.fileCount;
+            showUserDetails(userId, username, email, fileCount);
+        });
+    });
+    
+    // 操作按钮点击事件
+    document.querySelectorAll('.user-details-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const userId = this.dataset.userId;
+            const row = document.querySelector(`[data-user-id="${userId}"]`);
+            showUserDetails(userId, row.dataset.username, row.dataset.email, row.dataset.fileCount);
+        });
+    });
+    
+    document.querySelectorAll('.user-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const userId = this.dataset.userId;
+            const currentStatus = parseInt(this.dataset.currentStatus);
+            toggleUserStatus(userId, currentStatus);
+        });
+    });
+    
+    document.querySelectorAll('.user-delete-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const userId = this.dataset.userId;
+            const username = this.dataset.username;
+            deleteUser(userId, username);
+        });
+    });
+});
+
+// 显示用户详情模态框
+function showUserDetails(userId, username, email, fileCount) {
+    const userDetailsModal = `
+        <div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="userDetailsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-gradient-primary text-white border-0 py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-md avatar-rounded bg-white bg-opacity-20 me-3">
+                                <i class="bi bi-person-lines-fill fs-5 text-white"></i>
+                            </div>
+                            <div>
+                                <h5 class="modal-title mb-0 fw-bold" id="userDetailsModalLabel">${username}</h5>
+                                <small class="text-white-50">${email}</small>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="关闭"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <!-- 用户信息卡片 -->
+                        <div class="row g-0">
+                            <div class="col-4 bg-light">
+                                <div class="p-4 text-center h-100 d-flex flex-column justify-content-center">
+                                    <div class="avatar avatar-xl avatar-rounded bg-primary-gradient mx-auto mb-3">
+                                        <span class="fs-1 fw-bold text-white">${username.charAt(0).toUpperCase()}</span>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">${username}</h6>
+                                    <small class="text-muted mb-3">${email}</small>
+                                    <div class="d-flex justify-content-center gap-3">
+                                        <div class="text-center">
+                                            <div class="fs-5 fw-bold text-primary">${fileCount}</div>
+                                            <small class="text-muted">文档</small>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="fs-5 fw-bold text-success" id="userActiveStatus">激活</div>
+                                            <small class="text-muted">状态</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-8">
+                                <div class="p-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0 d-flex align-items-center">
+                                            <i class="bi bi-folder-open me-2 text-primary"></i>
+                                            文档列表
+                                        </h6>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshUserFiles(${userId})" title="刷新">
+                                                <i class="bi bi-arrow-clockwise"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-success btn-sm" onclick="exportUserFiles(${userId})" title="导出">
+                                                <i class="bi bi-download"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="userFilesList" class="border rounded-3" style="height: 320px; overflow-y: auto; background: #fafbfc;">
+                                        <div class="d-flex justify-content-center align-items-center h-100">
+                                            <div class="text-center">
+                                                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                                                <span class="text-muted">正在加载文档列表...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-0 py-3">
+                        <div class="d-flex justify-content-between w-100">
+                            <div class="text-muted small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                文档状态实时显示处理进度
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-light btn-sm me-2" data-bs-dismiss="modal">关闭</button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="exportUserFiles(${userId})">
+                                    <i class="bi bi-download me-1"></i>导出列表
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 移除现有的模态框
+    const existingModal = document.getElementById('userDetailsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // 添加新的模态框
+    document.body.insertAdjacentHTML('beforeend', userDetailsModal);
+    
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+    modal.show();
+    
+    // 加载用户文档列表
+    loadUserFiles(userId);
+}
+
+// 加载用户文档列表
+function loadUserFiles(userId) {
+    const filesList = document.getElementById('userFilesList');
+    // 使用全局变量
+    const currentUserRole = window.currentUserRole || '{{ current_user_role }}';
+    const isFullAdmin = currentUserRole === 'admin';
+    
+    // 通过API获取用户文档数据
+    fetch(`/admin/users/${userId}/files`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const files = data.files || [];
+                
+                if (files.length === 0) {
+                    filesList.innerHTML = `
+                        <div class="text-center py-5">
+                            <div class="avatar avatar-lg avatar-rounded bg-light mb-3">
+                                <i class="bi bi-folder-x fs-3 text-muted"></i>
+                            </div>
+                            <p class="text-muted mb-0">该用户暂无上传文档</p>
+                            <small class="text-muted">等待用户上传第一个文档</small>
+                        </div>
+                    `;
+                } else {
+                    const filesHtml = files.map(file => `
+                        <div class="file-item d-flex align-items-center justify-content-between p-3 border-bottom hover-bg-light">
+                            <div class="d-flex align-items-center flex-grow-1">
+                                <div class="file-icon me-3">
+                                    ${getFileIcon(file.original_name || file.filename)}
+                                </div>
+                                <div class="file-info flex-grow-1">
+                                    <div class="fw-semibold text-dark mb-1" style="font-size: 14px;">${file.original_name || file.filename}</div>
+                                    <div class="d-flex align-items-center gap-3 mb-2">
+                                        <small class="text-muted">
+                                            <i class="bi bi-hdd me-1"></i>${formatFileSize(file.size || file.file_size || 0)}
+                                        </small>
+                                        <small class="text-muted">
+                                            <i class="bi bi-calendar-event me-1"></i>${formatDateTime(file.upload_time)}
+                                        </small>
+                                    </div>
+                                    <div class="file-status-badges d-flex gap-1">
+                                        ${getSimpleFileStatusBadges(file)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="file-actions d-flex align-items-center gap-2">
+                                <div class="badge bg-success-transparent text-success px-2 py-1 small">
+                                    ${file.status || '正常'}
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-ghost-light btn-sm rounded-circle" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        <li><a class="dropdown-item small" href="#" onclick="downloadFile(${file.file_id || file.id}, '${file.original_name || file.filename}')">
+                                            <i class="bi bi-download me-2"></i>下载
+                                        </a></li>
+                                        ${isFullAdmin ? `
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item small text-danger" href="#" onclick="deleteFile(${file.file_id || file.id})">
+                                            <i class="bi bi-trash me-2"></i>删除
+                                        </a></li>
+                                        ` : ''}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    filesList.innerHTML = filesHtml;
+                }
+            } else {
+                filesList.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="avatar avatar-lg avatar-rounded bg-danger-transparent mb-3">
+                            <i class="bi bi-exclamation-triangle fs-3 text-danger"></i>
+                        </div>
+                        <p class="text-danger mb-0">加载文档列表失败</p>
+                        <small class="text-muted">${data.message || '未知错误'}</small>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-primary btn-sm" onclick="loadUserFiles(${userId})">
+                                <i class="bi bi-arrow-clockwise me-1"></i>重试
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading user files:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                userId: userId,
+                url: `/admin/users/${userId}/files`
+            });
+            filesList.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="avatar avatar-lg avatar-rounded bg-danger-transparent mb-3">
+                        <i class="bi bi-wifi-off fs-3 text-danger"></i>
+                    </div>
+                    <p class="text-danger mb-0">网络错误，无法加载文档列表</p>
+                    <small class="text-muted">错误: ${error.message}</small>
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary btn-sm" onclick="loadUserFiles(${userId})">
+                            <i class="bi bi-arrow-clockwise me-1"></i>重试
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+}
+
+// 获取文件图标
+function getFileIcon(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    const iconMap = {
+        'pdf': '<i class="bi bi-file-earmark-pdf text-danger fs-5"></i>',
+        'doc': '<i class="bi bi-file-earmark-word text-primary fs-5"></i>',
+        'docx': '<i class="bi bi-file-earmark-word text-primary fs-5"></i>',
+        'xls': '<i class="bi bi-file-earmark-excel text-success fs-5"></i>',
+        'xlsx': '<i class="bi bi-file-earmark-excel text-success fs-5"></i>',
+        'ppt': '<i class="bi bi-file-earmark-ppt text-warning fs-5"></i>',
+        'pptx': '<i class="bi bi-file-earmark-ppt text-warning fs-5"></i>',
+        'txt': '<i class="bi bi-file-earmark-text text-secondary fs-5"></i>',
+        'md': '<i class="bi bi-file-earmark-text text-info fs-5"></i>',
+        'jpg': '<i class="bi bi-file-earmark-image text-purple fs-5"></i>',
+        'jpeg': '<i class="bi bi-file-earmark-image text-purple fs-5"></i>',
+        'png': '<i class="bi bi-file-earmark-image text-purple fs-5"></i>',
+        'gif': '<i class="bi bi-file-earmark-image text-purple fs-5"></i>',
+        'zip': '<i class="bi bi-file-earmark-zip text-dark fs-5"></i>',
+        'rar': '<i class="bi bi-file-earmark-zip text-dark fs-5"></i>'
+    };
+    
+    return iconMap[ext] || '<i class="bi bi-file-earmark text-muted fs-5"></i>';
+}
+
+// 获取文件扩展名
+function getFileExtension(filename) {
+    return filename.split('.').pop().toLowerCase();
+}
+
+// 格式化文件大小
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// 格式化日期时间
+function formatDateTime(dateString) {
+    if (!dateString) return '未知时间';
+    
+    const date = new Date(dateString);
+    return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+// 简化的文件状态徽章 - 使用后端返回的状态数据，不发起网络请求
+function getSimpleFileStatusBadges(file) {
+    // 使用后端返回的status_badges数据
+    if (file.status_badges && file.status_badges.length > 0) {
+        return file.status_badges.map(badge => 
+            `<span class="badge ${badge.class} me-1" style="font-size: 10px;">${badge.text}</span>`
+        ).join('');
+    }
+    
+    // 如果没有status_badges数据，则使用基础状态判断
+    const badges = [];
+    const status = file.status || 'pending';
+    
+    if (status === 'completed') {
+        badges.push('<span class="badge bg-success-transparent text-success me-1" style="font-size: 10px;">已完成</span>');
+    } else if (status === 'processing') {
+        badges.push('<span class="badge bg-warning-transparent text-warning me-1" style="font-size: 10px;">处理中</span>');
+    } else if (status === 'error') {
+        badges.push('<span class="badge bg-danger-transparent text-danger me-1" style="font-size: 10px;">处理失败</span>');
+    } else {
+        badges.push('<span class="badge bg-light text-muted me-1" style="font-size: 10px;">待处理</span>');
+    }
+    
+    return badges.join('');
+}
+
+// 获取文档状态徽章 - 已废弃，保留以防兼容性问题
+function getFileStatusBadges(fileId) {
+    // 不再异步获取状态，避免无限循环
+    console.warn('getFileStatusBadges 已废弃，请使用 getSimpleFileStatusBadges');
+    
+    // 返回简单状态，不再进行网络请求
+    const containerId = `status-badges-${fileId}`;
+    return `<div id="${containerId}"><span class="badge bg-light text-muted me-1" style="font-size: 10px;">已废弃</span></div>`;
+}
+
+// 检查文档实际状态（真实实现应该调用后端API）
+async function checkFileStatus(fileId) {
+    try {
+        const response = await fetch(`/admin/files/${fileId}/status`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('检查文档状态失败:', error);
+        return {
+            has_md: false,
+            has_table_json: false,
+            has_content_json: false
+        };
+    }
+}
+
+// 导出用户文档列表
+function exportUserFiles(userId) {
+    showAlert('info', '正在导出用户文档列表...');
+    
+    // 获取用户文档数据并导出
+    fetch(`/admin/users/${userId}/files`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const files = data.files || [];
+                const userInfo = data.user || {};
+                
+                showAlert('success', '用户信息获取成功！');
+            } else {
+                showAlert('danger', data.message || '获取用户信息失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error getting user info:', error);
+            showAlert('danger', '网络错误，获取用户信息失败');
+        });
+}
+
+// 下载文件
+function downloadFile(fileId, filename) {
+    showAlert('info', `正在下载文件: ${filename}`);
+    
+    const downloadUrl = `/download/${fileId}`;
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// 删除文件
+function deleteFile(fileId) {
+    if (confirm('确定要删除这个文件吗？此操作不可撤销。')) {
+        fetch(`/admin/files/${fileId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', '文件删除成功！');
+                // 重新加载当前用户的文件列表
+                const modal = document.getElementById('userDetailsModal');
+                if (modal) {
+                    const userId = modal.getAttribute('data-user-id');
+                    if (userId) {
+                        loadUserFiles(userId);
+                    }
+                }
+            } else {
+                showAlert('danger', data.message || '删除失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting file:', error);
+            showAlert('danger', '网络错误，删除失败');
+        });
+    }
+}
+
+// 刷新用户文件列表
+function refreshUserFiles(userId) {
+    loadUserFiles(userId);
+    showAlert('info', '正在刷新文档列表...');
+}
+
+// 导出用户文件列表
+function exportUserFiles(userId) {
+    fetch(`/admin/users/${userId}/files`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const files = data.files || [];
+                const userInfo = data.user || {};
+                
+                const content = [
+                    `=== 用户文档列表 ===`,
+                    `用户: ${userInfo.username || 'Unknown'}`,
+                    `邮箱: ${userInfo.email || 'Unknown'}`,
+                    `文档总数: ${files.length}`,
+                    `导出时间: ${new Date().toLocaleString('zh-CN')}`,
+                    '',
+                    '=== 文档详情 ==='
+                ];
+                
+                if (files.length === 0) {
+                    content.push('该用户暂无上传文档');
+                } else {
+                    files.forEach((file, index) => {
+                        const fileSize = formatFileSize(file.size || file.file_size || 0);
+                        const uploadTime = formatDateTime(file.upload_time);
+                        content.push(`${index + 1}. ${file.original_name || file.filename} (${fileSize}) - ${uploadTime}`);
+                        if (file.description) {
+                            content.push(`   描述: ${file.description}`);
+                        }
+                    });
+                }
+                
+                const blob = new Blob([content.join('\\n')], { type: 'text/plain;charset=utf-8' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `用户${userId}_文档列表_${new Date().toISOString().split('T')[0]}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                showAlert('success', '文档列表导出成功！');
+            } else {
+                showAlert('danger', data.message || '导出失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error exporting user files:', error);
+            showAlert('danger', '网络错误，导出失败');
+        });
+}
+
+// 预览用户文件
+function previewUserFile(fileId, filename) {
+    showAlert('info', `正在预览文件: ${filename}`);
+    
+    // 打开预览窗口
+    const previewUrl = `/preview/${fileId}`;
+    window.open(previewUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+}
+
+// 下载用户文件
+function downloadUserFile(fileId, filename) {
+    showAlert('info', `正在下载文件: ${filename}`);
+    
+    const downloadUrl = `/download/${fileId}`;
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// 返回上传文件
+function goBackToDashboard() {
+    showAlert('info', '正在返回管理控制台...', 1000);
+    setTimeout(() => {
+        window.location.href = "{{ url_for('word_admin_dashboard') }}";
+    }, 500);
+}
+
+// 显示添加用户模态框
+function showAddUserModal() {
+    const addUserModal = `
+        <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addUserModalLabel">
+                            <i class="bi bi-person-plus me-2"></i>添加新用户
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addUserForm">
+                            <div class="mb-3">
+                                <label for="newUsername" class="form-label">用户名</label>
+                                <input type="text" class="form-control" id="newUsername" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="newEmail" class="form-label">邮箱地址</label>
+                                <input type="email" class="form-control" id="newEmail" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="newPassword" class="form-label">密码</label>
+                                <input type="password" class="form-control" id="newPassword" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="newUserRole" class="form-label">用户角色</label>
+                                <select class="form-select" id="newUserRole" required>
+                                    <option value="user" selected>普通用户</option>
+                                    <option value="premium">高级用户</option>
+                                    <option value="admin">管理员</option>
+                                </select>
+                                <div class="form-text">
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        普通用户: 基础功能权限 | 高级用户: 增强功能权限 | 管理员: 完整管理权限
+                                    </small>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" onclick="createNewUser()">创建用户</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 移除现有的模态框
+    const existingModal = document.getElementById('addUserModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // 添加新的模态框
+    document.body.insertAdjacentHTML('beforeend', addUserModal);
+    
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('addUserModal'));
+    modal.show();
+}
+
+// 创建新用户
+function createNewUser() {
+    const username = document.getElementById('newUsername').value.trim();
+    const email = document.getElementById('newEmail').value.trim();
+    const password = document.getElementById('newPassword').value;
+    const role = document.getElementById('newUserRole').value;
+    
+    if (!username || !email || !password || !role) {
+        showAlert('danger', '请填写所有字段');
+        return;
+    }
+    
+    // 发送创建请求
+    fetch('/admin/users/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            username: username,
+            email: email,
+            password: password,
+            role: role
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+            modal.hide();
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showAlert('danger', data.message || '创建用户失败');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', '网络错误，请稍后重试');
+    });
+}
+
+// 实时搜索功能
+function realTimeSearch(searchTerm) {
+    const userRows = document.querySelectorAll('[id^="user-row-"]');
+    searchTerm = searchTerm.toLowerCase().trim();
+    
+    userRows.forEach(row => {
+        if (searchTerm === '') {
+            row.style.display = '';
+        } else {
+            const cells = row.children;
+            const username = cells[1].textContent.toLowerCase();
+            const email = cells[2].textContent.toLowerCase();
+            
+            if (username.includes(searchTerm) || email.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    });
+}
+
+// 清除搜索
+function clearSearch() {
+    const searchInput = document.getElementById('realTimeSearch');
+    searchInput.value = '';
+    realTimeSearch('');
+}
+// 切换用户状态
+function toggleUserStatus(userId, currentStatus) {
+    const action = currentStatus ? 'disable' : 'enable';
+    const actionText = currentStatus ? '禁用' : '激活';
+    
+    if (confirm(`确定要${actionText}该用户吗？`)) {
+        fetch(`/admin/users/${userId}/toggle-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 更新状态徽章
+                const badge = document.getElementById(`status-badge-${userId}`);
+                const button = document.getElementById(`toggle-btn-${userId}`);
+                
+                if (action === 'disable') {
+                    badge.className = 'badge bg-secondary';
+                    badge.textContent = '禁用';
+                    button.innerHTML = '<i class="bi bi-play"></i>';
+                    button.title = '激活用户';
+                    button.setAttribute('onclick', `toggleUserStatus(${userId}, 0)`);
+                } else {
+                    badge.className = 'badge bg-success';
+                    badge.textContent = '激活';
+                    button.innerHTML = '<i class="bi bi-pause"></i>';
+                    button.title = '禁用用户';
+                    button.setAttribute('onclick', `toggleUserStatus(${userId}, 1)`);
+                }
+                
+                // 显示成功消息
+                showAlert('success', data.message);
+            } else {
+                showAlert('danger', data.message || '操作失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '网络错误，请稍后重试');
+        });
+    }
+}
+
+// 删除用户
+function deleteUser(userId, username) {
+    if (confirm(`确定要删除用户 "${username}" 吗？此操作不可恢复！`)) {
+        fetch(`/admin/users/${userId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 移除用户行
+                document.getElementById(`user-row-${userId}`).remove();
+                showAlert('success', data.message);
+                
+                // 更新页面统计信息
+                updateUserStats();
+            } else {
+                showAlert('danger', data.message || '删除失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '网络错误，请稍后重试');
+        });
+    }
+}
+
+// 更新用户角色（通过下拉选择）
+function updateUserRole(selectElement) {
+    const userId = selectElement.getAttribute('data-user-id');
+    const username = selectElement.getAttribute('data-username');
+    const newRole = selectElement.value;
+    const previousValue = selectElement.getAttribute('data-previous-value') || selectElement.value;
+    
+    if (!newRole) {
+        showAlert('danger', '请选择角色');
+        selectElement.value = previousValue; // 恢复之前的值
+        return;
+    }
+    
+    // 记录当前值作为备份
+    selectElement.setAttribute('data-previous-value', previousValue);
+    
+    // 发送角色更新请求
+    fetch(`/admin/users/${userId}/set-role`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            role: newRole
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 更新下拉选择的备份值
+            selectElement.setAttribute('data-previous-value', newRole);
+            
+            showAlert('success', data.message);
+        } else {
+            // 恢复之前的选择
+            selectElement.value = previousValue;
+            showAlert('danger', data.message || '角色设置失败');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // 恢复之前的选择
+        selectElement.value = previousValue;
+        showAlert('danger', '网络错误，请稍后重试');
+    });
+}
+
+
+// 导出用户列表
+function exportUserList() {
+    showAlert('info', '正在导出用户列表...');
+    
+    // 收集用户数据
+    const users = [];
+    const userRows = document.querySelectorAll('[id^="user-row-"]:not([style*="display: none"])');
+    
+    userRows.forEach(row => {
+        const cells = row.children;
+        const user = {
+            id: cells[0].textContent.trim(),
+            username: cells[1].textContent.trim(),
+            email: cells[2].textContent.trim(),
+            fileCount: cells[3].textContent.trim(),
+            registerTime: cells[4].textContent.trim(),
+            lastUpload: cells[5].textContent.trim(),
+            status: cells[6].textContent.trim()
+        };
+        users.push(user);
+    });
+    
+    // 创建CSV内容
+    const csvContent = [
+        ['用户ID', '用户名', '邮箱', '文件数', '注册时间', '最后上传', '状态'],
+        ...users.map(user => [
+            user.id,
+            user.username,
+            user.email,
+            user.fileCount,
+            user.registerTime,
+            user.lastUpload,
+            user.status
+        ])
+    ].map(row => row.join(',')).join('\\n');
+    
+    // 创建下载链接
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `用户列表_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showAlert('success', `用户列表导出成功！共 ${users.length} 条记录`);
+}
+
+// 显示用户统计
+function showUserStats() {
+    const statsModal = `
+        <div class="modal fade" id="statsModal" tabindex="-1" aria-labelledby="statsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="statsModalLabel">
+                            <i class="bi bi-bar-chart me-2"></i>用户统计报表
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <h2 id="totalUsersCount">{{ total_users }}</h2>
+                                        <p class="mb-0">总用户数</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h2 id="activeUsersCount">{{ users|selectattr('is_active')|list|length }}</h2>
+                                        <p class="mb-0">活跃用户</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body text-center">
+                                        <h2 id="inactiveUsersCount">{{ total_users - users|selectattr('is_active')|list|length }}</h2>
+                                        <p class="mb-0">禁用用户</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h2 id="newUsersCount">0</h2>
+                                        <p class="mb-0">本月新用户</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">用户状态分布</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="userStatusChart" width="300" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">最近注册趋势</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="text-center p-4">
+                                            <i class="bi bi-graph-up fs-1 text-primary"></i>
+                                            <p class="mt-2 text-muted">图表功能开发中...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        <button type="button" class="btn btn-primary" onclick="exportStatsReport()">
+                            <i class="bi bi-download me-1"></i>导出报表
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 移除现有的模态框
+    const existingModal = document.getElementById('statsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // 添加新的模态框
+    document.body.insertAdjacentHTML('beforeend', statsModal);
+    
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('statsModal'));
+    modal.show();
+}
+
+// 显示活动报告
+function showActivityReport() {
+    const activityModal = `
+        <div class="modal fade" id="activityModal" tabindex="-1" aria-labelledby="activityModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="activityModalLabel">
+                            <i class="bi bi-activity me-2"></i>用户活动报告
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>用户</th>
+                                        <th>文件数量</th>
+                                        <th>最后上传</th>
+                                        <th>活跃度</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activityTableBody">
+                                    <tr>
+                                        <td colspan="4" class="text-center">
+                                            <div class="spinner-border spinner-border-sm me-2"></div>
+                                            正在加载数据...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 移除现有的模态框
+    const existingModal = document.getElementById('activityModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // 添加新的模态框
+    document.body.insertAdjacentHTML('beforeend', activityModal);
+    
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('activityModal'));
+    modal.show();
+    
+    // 模拟加载活动数据
+    setTimeout(() => {
+        const tbody = document.getElementById('activityTableBody');
+        const userRows = document.querySelectorAll('[id^="user-row-"]');
+        let activityHtml = '';
+        
+        userRows.forEach(row => {
+            const cells = row.children;
+            const username = cells[1].textContent.trim();
+            const fileCount = cells[3].textContent.trim();
+            const lastUpload = cells[5].textContent.trim();
+            
+            // 计算活跃度
+            let activityLevel = '低';
+            let activityColor = 'danger';
+            const fileNum = parseInt(fileCount) || 0;
+            
+            if (fileNum > 10) {
+                activityLevel = '高';
+                activityColor = 'success';
+            } else if (fileNum > 5) {
+                activityLevel = '中';
+                activityColor = 'warning';
+            }
+            
+            activityHtml += `
+                <tr>
+                    <td>${username}</td>
+                    <td>${fileCount}</td>
+                    <td>${lastUpload}</td>
+                    <td><span class="badge bg-${activityColor}">${activityLevel}</span></td>
+                </tr>
+            `;
+        });
+        
+        tbody.innerHTML = activityHtml;
+    }, 1000);
+}
+
+// 导出完整报告
+function exportFullReport() {
+    showAlert('info', '正在生成完整报告...');
+    
+    // 收集用户数据
+    const users = [];
+    const userRows = document.querySelectorAll('[id^="user-row-"]:not([style*="display: none"])');
+    
+    userRows.forEach(row => {
+        const cells = row.children;
+        users.push(`${cells[1].textContent.trim()} - ${cells[2].textContent.trim()}`);
+    });
+    
+    // 创建报告内容
+    const reportContent = [
+        '=== 用户管理系统报告 ===',
+        '',
+        `总用户数: ${users.length}`,
+        `报告生成时间: ${new Date().toLocaleString('zh-CN')}`,
+        '',
+        '=== 用户列表 ===',
+        ...users
+    ];
+    
+    // 创建下载链接
+    const blob = new Blob([reportContent.join('\\n')], { type: 'text/plain;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `用户报告_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showAlert('success', '报告导出成功！');
+}
+
+
+
+// 刷新用户列表
+function refreshUserList() {
+    showAlert('info', '正在刷新用户列表...', 1000);
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
+}
+
+// 根据角色筛选用户
+function filterUsersByRole() {
+    const selectedRole = document.getElementById('roleFilter').value;
+    const userRows = document.querySelectorAll('.user-row');
+    let visibleCount = 0;
+    
+    userRows.forEach(row => {
+        const userRole = row.getAttribute('data-role');
+        if (selectedRole === 'all' || userRole === selectedRole) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // 更新显示计数
+    updateVisibleUserCount(visibleCount);
+    
+    // 更新批量操作控件状态
+    updateBatchControls();
+    
+    // 显示筛选结果提示
+    if (selectedRole !== 'all') {
+        const roleNames = {
+            'admin': '管理员',
+            'premium': '高级用户', 
+            'user': '普通用户'
+        };
+        const totalCount = userRows.length;
+        if (visibleCount === 0) {
+            showAlert('warning', `没有找到${roleNames[selectedRole]}用户`);
+        } else {
+            showAlert('info', `已筛选出 ${visibleCount} 个${roleNames[selectedRole]}用户 (共${totalCount}个用户)`);
+        }
+    } else {
+        showAlert('success', `显示全部 ${visibleCount} 个用户`);
+    }
+}
+
+// 更新可见用户计数
+function updateVisibleUserCount(count) {
+    const countDisplay = document.querySelector('.card-header small.text-muted');
+    if (countDisplay) {
+        const totalUsers = document.querySelectorAll('.user-row').length;
+        if (count === totalUsers) {
+            countDisplay.textContent = `显示第 1 - ${count} 条，共 ${totalUsers} 条记录`;
+        } else {
+            countDisplay.textContent = `筛选显示 ${count} 条，总共 ${totalUsers} 条记录`;
+        }
+    }
+}
+
+// 重置角色筛选
+function resetRoleFilter() {
+    document.getElementById('roleFilter').value = 'all';
+    filterUsersByRole();
+    showAlert('success', '已重置筛选条件');
+}
+
+// 页面加载时执行
+document.addEventListener('DOMContentLoaded', function() {
+    // 添加表格行悬停效果
+    document.querySelectorAll('[id^="user-row-"]').forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = 'rgba(13, 110, 253, 0.05)';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+    
+    // 初始化角色筛选器
+    const roleFilter = document.getElementById('roleFilter');
+    if (roleFilter) {
+        // 添加键盘快捷键支持
+        roleFilter.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                resetRoleFilter();
+                e.preventDefault();
+            }
+        });
+        
+        // 保存初始状态，用于统计
+        window.totalUserCount = document.querySelectorAll('.user-row').length;
+    }
+});
+
+// 批量操作相关函数
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const userCheckboxes = document.querySelectorAll('.user-checkbox:not([disabled])');
+    const visibleCheckboxes = Array.from(userCheckboxes).filter(checkbox => {
+        const row = checkbox.closest('.user-row');
+        return row && row.style.display !== 'none';
+    });
+    
+    visibleCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    
+    updateBatchControls();
+}
+
+function updateBatchControls() {
+    const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+    const allCheckboxes = document.querySelectorAll('.user-checkbox');
+    const selectedCount = document.getElementById('selectedCount');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    
+    // 更新行的高亮状态
+    allCheckboxes.forEach(checkbox => {
+        const row = checkbox.closest('.user-row');
+        if (checkbox.checked) {
+            row.classList.add('selected');
+        } else {
+            row.classList.remove('selected');
+        }
+    });
+    
+    // 更新选中数量显示
+    if (checkedBoxes.length > 0) {
+        selectedCount.textContent = `已选择 ${checkedBoxes.length} 个用户`;
+    } else {
+        selectedCount.textContent = `未选择`;
+    }
+    
+    // 更新全选复选框状态
+    const allVisibleCheckboxes = Array.from(document.querySelectorAll('.user-checkbox:not([disabled])')).filter(checkbox => {
+        const row = checkbox.closest('.user-row');
+        return row && row.style.display !== 'none';
+    });
+    
+    const checkedVisibleBoxes = allVisibleCheckboxes.filter(checkbox => checkbox.checked);
+    
+    if (checkedVisibleBoxes.length === 0) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = false;
+    } else if (checkedVisibleBoxes.length === allVisibleCheckboxes.length) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = true;
+    } else {
+        selectAllCheckbox.indeterminate = true;
+        selectAllCheckbox.checked = false;
+    }
+}
+
+function selectAllVisible() {
+    const visibleCheckboxes = Array.from(document.querySelectorAll('.user-checkbox:not([disabled])')).filter(checkbox => {
+        const row = checkbox.closest('.user-row');
+        return row && row.style.display !== 'none';
+    });
+    
+    visibleCheckboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    
+    updateBatchControls();
+}
+
+function clearSelection() {
+    document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateBatchControls();
+}
+
+function getSelectedUserIds() {
+    const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+    return Array.from(checkedBoxes).map(checkbox => checkbox.value);
+}
+
+function getSelectedUsernames() {
+    const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+    return Array.from(checkedBoxes).map(checkbox => checkbox.getAttribute('data-username'));
+}
+
+function batchSetRole(newRole) {
+    const selectedIds = getSelectedUserIds();
+    const selectedUsernames = getSelectedUsernames();
+    
+    if (selectedIds.length === 0) {
+        showAlert('warning', '请先选择要操作的用户');
+        return;
+    }
+    
+    const roleNames = {
+        'user': '普通用户',
+        'premium': '高级用户', 
+        'admin': '管理员'
+    };
+    
+    if (!confirm(`确定要将 ${selectedIds.length} 个用户的角色设置为 ${roleNames[newRole]} 吗？\n\n选中的用户：${selectedUsernames.join(', ')}`)) {
+        return;
+    }
+    
+    const requests = selectedIds.map(userId => {
+        return fetch(`/admin/users/${userId}/set-role`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ role: newRole })
+        }).then(response => response.json());
+    });
+    
+    Promise.all(requests)
+        .then(results => {
+            const successCount = results.filter(result => result.success).length;
+            const failCount = results.length - successCount;
+            
+            if (successCount > 0) {
+                showAlert('success', `成功设置 ${successCount} 个用户的角色`);
+                // 刷新页面以更新显示
+                setTimeout(() => location.reload(), 1500);
+            }
+            
+            if (failCount > 0) {
+                showAlert('warning', `${failCount} 个用户角色设置失败`);
+            }
+        })
+        .catch(error => {
+            console.error('Batch role update error:', error);
+            showAlert('danger', '批量角色设置失败，请稍后重试');
+        });
+}
+
+function batchDeleteUsers() {
+    const selectedIds = getSelectedUserIds();
+    const selectedUsernames = getSelectedUsernames();
+    
+    if (selectedIds.length === 0) {
+        showAlert('warning', '请先选择要删除的用户');
+        return;
+    }
+    
+    const confirmText = `警告：此操作不可恢复！\n\n确定要删除以下 ${selectedIds.length} 个用户吗？\n\n${selectedUsernames.join('\n')}`;
+    
+    if (!confirm(confirmText)) {
+        return;
+    }
+    
+    // 二次确认
+    if (!confirm('请再次确认：您真的要永久删除这些用户吗？此操作无法撤销！')) {
+        return;
+    }
+    
+    const requests = selectedIds.map(userId => {
+        return fetch(`/admin/users/${userId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(response => response.json());
+    });
+    
+    Promise.all(requests)
+        .then(results => {
+            const successCount = results.filter(result => result.success).length;
+            const failCount = results.length - successCount;
+            
+            if (successCount > 0) {
+                showAlert('success', `成功删除 ${successCount} 个用户`);
+                // 刷新页面以更新显示
+                setTimeout(() => location.reload(), 1500);
+            }
+            
+            if (failCount > 0) {
+                showAlert('warning', `${failCount} 个用户删除失败`);
+            }
+        })
+        .catch(error => {
+            console.error('Batch delete error:', error);
+            showAlert('danger', '批量删除失败，请稍后重试');
+        });
+}
+</script>
+{% endblock %}

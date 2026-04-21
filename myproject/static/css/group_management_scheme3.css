@@ -1,0 +1,89 @@
+/* 方案3: 毛玻璃效果按钮设计 */
+.btn-icon-glass {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 12px;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.btn-icon-glass::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+    border-radius: inherit;
+    border: 1px solid rgba(255,255,255,0.18);
+}
+
+.btn-icon-glass.btn-primary-glass {
+    background: rgba(134, 90, 223, 0.25);
+    color: #6f42c1;
+    box-shadow: 0 8px 32px rgba(134, 90, 223, 0.3);
+}
+
+.btn-icon-glass.btn-primary-glass:hover {
+    background: rgba(134, 90, 223, 0.35);
+    transform: translateY(-4px) scale(1.08);
+    box-shadow: 0 12px 40px rgba(134, 90, 223, 0.4);
+    color: #5a2d91;
+}
+
+.btn-icon-glass.btn-danger-glass {
+    background: rgba(220, 53, 69, 0.25);
+    color: #dc3545;
+    box-shadow: 0 8px 32px rgba(220, 53, 69, 0.3);
+}
+
+.btn-icon-glass.btn-danger-glass:hover {
+    background: rgba(220, 53, 69, 0.35);
+    transform: translateY(-4px) scale(1.08);
+    box-shadow: 0 12px 40px rgba(220, 53, 69, 0.4);
+    color: #a71e2a;
+}
+
+/* 发光效果 */
+.btn-icon-glass::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: radial-gradient(circle, rgba(255,255,255,0.8), transparent);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: all 0.6s ease;
+}
+
+.btn-icon-glass:active::after {
+    width: 80px;
+    height: 80px;
+    opacity: 1;
+    transition: all 0.1s ease;
+}
+
+/* 图标3D效果 */
+.btn-icon-glass i {
+    transition: all 0.3s ease;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 2;
+    position: relative;
+}
+
+.btn-icon-glass:hover i {
+    transform: scale(1.2) rotateY(15deg);
+    text-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}

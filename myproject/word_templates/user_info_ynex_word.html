@@ -1,0 +1,721 @@
+{% extends "base_ynex_word.html" %}
+
+{% block title %}用户信息管理 - 参考文献检查系统{% endblock %}
+
+{% block content %}
+<!-- Flash消息 -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="flash-message" data-type="{{ 'danger' if category == 'error' else 'success' }}" data-message="{{ message }}" style="display: none;"></div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Start::用户信息管理容器 -->
+<div class="row" style="height: 320px;">
+    <!-- 用户基本信息 -->
+    <div class="col-xl-6">
+        <div class="card custom-card h-100">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="bi bi-person-circle me-2"></i>用户基本信息
+                </div>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <div class="user-profile-section flex-fill">
+                    <!-- 用户头像 -->
+                    <div class="text-center mb-2">
+                        <div class="avatar avatar-md bg-primary-transparent mb-2">
+                            <i class="bi bi-person-fill fs-24"></i>
+                        </div>
+                        <h6 class="mb-1">{{ username or '用户' }}</h6>
+                        <p class="text-muted mb-0 small">用户ID: {{ user_id or 'N/A' }}</p>
+                        <p class="text-muted mb-0 small">
+                            角色: 
+                            <span class="badge bg-{% if session.get('role') == 'admin' %}danger{% elif session.get('role') == 'premium' %}warning{% else %}secondary{% endif %}">
+                                {% if session.get('role') == 'admin' %}
+                                    管理员
+                                {% elif session.get('role') == 'premium' %}
+                                    高级用户
+                                {% else %}
+                                    普通用户
+                                {% endif %}
+                            </span>
+                        </p>
+                    </div>
+                    
+                    <!-- 用户信息编辑表单 -->
+                    <form id="userProfileForm" class="flex-fill d-flex flex-column">
+                        <div class="profile-item mb-2">
+                            <label class="form-label small">用户名</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" id="username" 
+                                       value="{{ username or '' }}" disabled>
+                                <button type="button" class="btn btn-outline-secondary" id="editUsernameBtn" 
+                                        onclick="toggleEdit('username')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="profile-item mb-2">
+                            <label class="form-label small">邮箱地址</label>
+                            <div class="input-group input-group-sm">
+                                <input type="email" class="form-control" id="email" 
+                                       value="{{ email or '' }}" disabled>
+                                <button type="button" class="btn btn-outline-secondary" id="editEmailBtn" 
+                                        onclick="toggleEdit('email')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 保存和取消按钮 - 放在底部 -->
+                        <div class="profile-actions d-none mt-auto" id="profileActions">
+                            <button type="button" class="btn btn-success btn-sm me-2" onclick="saveProfile()">
+                                <i class="bi bi-check-circle me-1"></i>保存更改
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelEdit()">
+                                <i class="bi bi-x-circle me-1"></i>取消编辑
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 右侧列 -->
+    <div class="col-xl-6">
+        <!-- API密钥管理 -->
+        <div class="card custom-card mb-3" style="height: 320px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="bi bi-key me-2"></i>API密钥管理
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <!-- MinerU API密钥状态 -->
+                <div class="api-status-group mb-3">
+                    <label class="form-label mb-2">MinerU API密钥</label>
+                    <div class="api-status-card d-flex justify-content-between align-items-center p-2 border rounded">
+                        <div class="status-indicator d-flex align-items-center flex-grow-1" style="min-width: 0;">
+                            <i class="bi bi-check-circle-fill text-success me-2 flex-shrink-0" id="mineruStatusIcon" style="font-size: 1.25rem;"></i>
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <div class="status-text fw-semibold" id="mineruStatusText" style="font-size: 0.9rem;">已配置</div>
+                                <div class="status-detail text-muted text-truncate" id="mineruStatusDetail" style="font-size: 0.75rem; line-height: 1.3;">
+                                    管理员已为您配置API密钥
+                                </div>
+                            </div>
+                        </div>
+                        <div class="badge bg-success flex-shrink-0 ms-2" id="mineruStatusBadge" style="font-size: 0.7rem;">已配置</div>
+                    </div>
+                </div>
+                
+                <!-- SiliconFlow API密钥状态 -->
+                <div class="api-status-group mb-0">
+                    <label class="form-label mb-2">SiliconFlow API密钥</label>
+                    <div class="api-status-card d-flex justify-content-between align-items-center p-2 border rounded">
+                        <div class="status-indicator d-flex align-items-center flex-grow-1" style="min-width: 0;">
+                            <i class="bi bi-x-circle text-muted me-2 flex-shrink-0" id="siliconflowStatusIcon" style="font-size: 1.25rem;"></i>
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <div class="status-text fw-semibold" id="siliconflowStatusText" style="font-size: 0.9rem;">未配置</div>
+                                <div class="status-detail text-muted text-truncate" id="siliconflowStatusDetail" style="font-size: 0.75rem; line-height: 1.3;">
+                                    请联系管理员配置API密钥
+                                </div>
+                            </div>
+                        </div>
+                        <div class="badge bg-secondary flex-shrink-0 ms-2" id="siliconflowStatusBadge" style="font-size: 0.7rem;">未配置</div>
+                    </div>
+                    <!-- 模型名称显示 -->
+                    <div class="mt-2 d-none" id="siliconflowModelInfo">
+                        <small class="text-muted">
+                            <i class="bi bi-cpu me-1"></i>配置模型: 
+                            <span class="fw-semibold text-primary" id="siliconflowModelName">-</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 账户安全操作 -->
+        <div class="card custom-card" style="height: calc(100% - 335px);">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="bi bi-shield-check me-2"></i>账户安全操作
+                </div>
+            </div>
+            <div class="card-body d-flex flex-column p-4">
+                <div class="row g-3 justify-content-center mb-4">
+                    <div class="col-md-6">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-warning btn-wave" onclick="showChangePasswordDialog()">
+                                <i class="bi bi-lock me-2"></i>修改密码
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-danger btn-wave" onclick="logout()">
+                                <i class="bi bi-box-arrow-right me-2"></i>退出登录
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 安全提示 -->
+                <div class="info-tip mt-auto mb-0" style="
+                    background: white;
+                    color: #374151;
+                    padding: 14px 16px;
+                    border-radius: 8px;
+                    border-left: 4px solid #3b82f6;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                ">
+                    <i class="bi bi-info-circle me-2" style="color: #3b82f6;"></i>
+                    <strong>安全提示：</strong>请定期更换密码，不要在公共设备上保存登录状态。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 用户统计 -->
+<div class="row mt-3" style="height: calc(320px - 15px);">
+    <div class="col-xl-6">
+        <div class="card custom-card h-100">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="bi bi-graph-up me-2"></i>使用统计
+                </div>
+            </div>
+            <div class="card-body d-flex align-items-center">
+                <div class="row g-2 w-100">
+                    <div class="col-md-3">
+                        <div class="text-center p-2 bg-primary-transparent rounded">
+                            <div class="mb-1">
+                                <i class="bi bi-file-earmark-pdf fs-18 text-primary"></i>
+                            </div>
+                            <h6 class="mb-1 text-primary" id="totalFiles">0</h6>
+                            <p class="mb-0 text-muted small">总文件数</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-2 bg-success-transparent rounded">
+                            <div class="mb-1">
+                                <i class="bi bi-check-circle fs-18 text-success"></i>
+                            </div>
+                            <h6 class="mb-1 text-success" id="parsedFiles">0</h6>
+                            <p class="mb-0 text-muted small">已解析文件</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-2 bg-warning-transparent rounded">
+                            <div class="mb-1">
+                                <i class="bi bi-clock-history fs-18 text-warning"></i>
+                            </div>
+                            <h6 class="mb-1 text-warning" id="pendingFiles">0</h6>
+                            <p class="mb-0 text-muted small">待解析文件</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-2 bg-info-transparent rounded" 
+                             data-bs-toggle="tooltip" 
+                             data-bs-placement="top" 
+                             title="今日上传文件数 + 今日完成解析文件数">
+                            <div class="mb-1">
+                                <i class="bi bi-calendar-check fs-18 text-info"></i>
+                            </div>
+                            <h6 class="mb-1 text-info" id="todayActivity">0</h6>
+                            <p class="mb-0 text-muted small">今日活动</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <!-- 空列，保持布局平衡 -->
+    </div>
+</div>
+<!-- End::用户信息管理容器 -->
+{% endblock %}
+
+{% block extra_js %}
+<style>
+/* 统计卡片样式 */
+.bg-primary-transparent { background: rgba(var(--primary-rgb), 0.1) !important; }
+.bg-success-transparent { background: rgba(var(--success-rgb), 0.1) !important; }
+.bg-warning-transparent { background: rgba(var(--warning-rgb), 0.1) !important; }
+.bg-info-transparent { background: rgba(var(--info-rgb), 0.1) !important; }
+
+/* API状态卡片样式 */
+.api-status-card {
+    transition: all 0.3s ease;
+    background: rgba(var(--bs-body-color-rgb), 0.02);
+    min-height: 60px;
+}
+
+.api-status-card:hover {
+    background: rgba(var(--bs-body-color-rgb), 0.05);
+    border-color: var(--bs-primary) !important;
+}
+
+.api-status-group .form-label {
+    font-weight: 600;
+    color: var(--bs-heading-color);
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.status-indicator {
+    overflow: hidden;
+}
+
+.status-indicator .status-text {
+    color: var(--bs-heading-color);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-indicator .status-detail {
+    font-size: 0.75rem;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .api-status-card {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }
+    
+    .api-status-card .badge {
+        align-self: flex-end;
+    }
+}
+
+/* API请求按钮样式 - 已更新为状态徽章样式 */
+.api-status-card .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    white-space: nowrap;
+    min-width: 50px;
+    text-align: center;
+}
+</style>
+
+<script>
+// 全局变量
+let isEditing = false;
+let originalValues = {};
+
+// 页面加载时执行
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化用户信息的原始值
+    const usernameInput = document.getElementById('username');
+    const emailInput = document.getElementById('email');
+    
+    if (usernameInput && usernameInput.value) {
+        originalValues['username'] = usernameInput.value;
+    }
+    if (emailInput && emailInput.value) {
+        originalValues['email'] = emailInput.value;
+    }
+    
+    loadApiKeys();
+    loadUserStats();
+});
+
+// 加载用户统计数据
+function loadUserStats() {
+    // 获取真实的统计数据
+    fetch('/api/user/stats')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('totalFiles').textContent = data.total_files || 0;
+            document.getElementById('parsedFiles').textContent = data.parsed_files || 0;
+            document.getElementById('pendingFiles').textContent = data.pending_files || 0;
+            document.getElementById('todayActivity').textContent = data.today_activity || 0;
+        })
+        .catch(error => {
+            console.error('统计数据加载失败:', error);
+            // 如果API调用失败，显示0或从其他数据源获取
+            document.getElementById('totalFiles').textContent = '0';
+            document.getElementById('parsedFiles').textContent = '0';
+            document.getElementById('pendingFiles').textContent = '0';
+            document.getElementById('todayActivity').textContent = '0';
+        });
+}
+
+// 切换编辑模式
+function toggleEdit(fieldName) {
+    const input = document.getElementById(fieldName);
+    const btn = document.getElementById(`edit${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}Btn`);
+    const actions = document.getElementById('profileActions');
+    
+    if (input.disabled) {
+        // 进入编辑模式
+        if (!isEditing) {
+            isEditing = true;
+        }
+        
+        // 保存当前值作为原始值（如果还没有保存的话）
+        if (!(fieldName in originalValues)) {
+            originalValues[fieldName] = input.value;
+        }
+        
+        input.disabled = false;
+        input.focus();
+        btn.innerHTML = '<i class="bi bi-x-circle"></i>';
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-outline-danger');
+        actions.classList.remove('d-none');
+    } else {
+        // 取消编辑
+        input.disabled = true;
+        input.value = originalValues[fieldName] || '';
+        btn.innerHTML = '<i class="bi bi-pencil"></i>';
+        btn.classList.remove('btn-outline-danger');
+        btn.classList.add('btn-outline-secondary');
+        
+        // 检查是否还有其他字段在编辑
+        const usernameInput = document.getElementById('username');
+        const emailInput = document.getElementById('email');
+        if (usernameInput.disabled && emailInput.disabled) {
+            actions.classList.add('d-none');
+            isEditing = false;
+            // 重置所有原始值
+            const usernameOriginal = document.getElementById('username').value;
+            const emailOriginal = document.getElementById('email').value;
+            originalValues = {
+                'username': usernameOriginal,
+                'email': emailOriginal
+            };
+        }
+    }
+}
+
+// 保存用户资料
+async function saveProfile() {
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    
+    if (!username) {
+        showAlert('warning', '用户名不能为空');
+        return;
+    }
+    
+    if (email && !isValidEmail(email)) {
+        showAlert('warning', '请输入有效的邮箱地址');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/update-profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                username: username,
+                email: email
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', '用户资料更新成功！');
+            
+            // 禁用所有输入框并重置按钮
+            const usernameInput = document.getElementById('username');
+            const emailInput = document.getElementById('email');
+            
+            usernameInput.disabled = true;
+            emailInput.disabled = true;
+            
+            // 更新原始值为新保存的值
+            originalValues = {
+                'username': usernameInput.value,
+                'email': emailInput.value
+            };
+            
+            document.getElementById('editUsernameBtn').innerHTML = '<i class="bi bi-pencil"></i>';
+            document.getElementById('editUsernameBtn').classList.remove('btn-outline-danger');
+            document.getElementById('editUsernameBtn').classList.add('btn-outline-secondary');
+            
+            document.getElementById('editEmailBtn').innerHTML = '<i class="bi bi-pencil"></i>';
+            document.getElementById('editEmailBtn').classList.remove('btn-outline-danger');
+            document.getElementById('editEmailBtn').classList.add('btn-outline-secondary');
+            
+            document.getElementById('profileActions').classList.add('d-none');
+            
+            isEditing = false;
+        } else {
+            showAlert('danger', result.message || '更新失败');
+        }
+    } catch (error) {
+        console.error('Update profile error:', error);
+        showAlert('danger', '更新用户资料时发生错误');
+    }
+}
+
+// 取消编辑
+function cancelEdit() {
+    // 恢复原始值
+    Object.keys(originalValues).forEach(fieldName => {
+        const input = document.getElementById(fieldName);
+        if (input) {
+            input.value = originalValues[fieldName];
+            input.disabled = true;
+        }
+        
+        const btn = document.getElementById(`edit${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}Btn`);
+        if (btn) {
+            btn.innerHTML = '<i class="bi bi-pencil"></i>';
+            btn.classList.remove('btn-outline-danger');
+            btn.classList.add('btn-outline-secondary');
+        }
+    });
+    
+    document.getElementById('profileActions').classList.add('d-none');
+    isEditing = false;
+    originalValues = {};
+}
+
+// 验证邮箱格式
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+// 切换API密钥可见性
+function toggleApiKeyVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const toggleIcon = document.getElementById(inputId.replace('ApiKey', 'ToggleIcon'));
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        toggleIcon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        toggleIcon.className = 'bi bi-eye';
+    }
+}
+
+// 加载API密钥状态
+async function loadApiKeys() {
+    try {
+        const response = await fetch('/api/get-api-keys');
+        const data = await response.json();
+        
+        if (data.success && data.keys) {
+            // 检查MinerU API密钥状态
+            const mineruKey = data.keys.find(key => key.is_active && key.api_provider === 'mineru');
+            updateApiKeyStatus('mineru', mineruKey);
+            
+            // 检查SiliconFlow API密钥状态
+            const siliconflowKey = data.keys.find(key => key.is_active && key.api_provider === 'siliconflow');
+            updateApiKeyStatus('siliconflow', siliconflowKey);
+        } else {
+            // 如果没有密钥，显示未配置状态
+            updateApiKeyStatus('mineru', null);
+            updateApiKeyStatus('siliconflow', null);
+        }
+    } catch (error) {
+        console.error('Load API keys error:', error);
+        // 出错时显示未配置状态
+        updateApiKeyStatus('mineru', null);
+        updateApiKeyStatus('siliconflow', null);
+    }
+}
+
+// 更新API密钥状态显示
+function updateApiKeyStatus(apiType, keyData) {
+    const statusIcon = document.getElementById(`${apiType}StatusIcon`);
+    const statusText = document.getElementById(`${apiType}StatusText`);
+    const statusDetail = document.getElementById(`${apiType}StatusDetail`);
+    const statusBadge = document.getElementById(`${apiType}StatusBadge`);
+    
+    if (keyData) {
+        // 已配置状态
+        statusIcon.className = 'bi bi-check-circle-fill text-success me-2 flex-shrink-0';
+        statusIcon.style.fontSize = '1.25rem';
+        statusText.textContent = '已配置';
+        
+        // 简化详细信息显示，避免溢出
+        let detailText = '管理员已配置';
+        if (keyData.assigned_at || keyData.created_at) {
+            const date = new Date(keyData.assigned_at || keyData.created_at);
+            const dateStr = date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+            detailText = `${dateStr} 管理员配置`;
+        }
+        
+        statusDetail.textContent = detailText;
+        statusDetail.title = `管理员已为您配置API密钥 (${keyData.assigned_at || keyData.created_at || ''})`; // 完整信息在tooltip中显示
+        statusBadge.textContent = '已配置';
+        statusBadge.className = 'badge bg-success flex-shrink-0 ms-2';
+        statusBadge.style.fontSize = '0.7rem';
+        
+        // 🆕 如果是SiliconFlow，显示模型名称
+        if (apiType === 'siliconflow' && keyData.model_name) {
+            const modelInfo = document.getElementById('siliconflowModelInfo');
+            const modelName = document.getElementById('siliconflowModelName');
+            if (modelInfo && modelName) {
+                modelName.textContent = keyData.model_name;
+                modelInfo.classList.remove('d-none');
+            }
+        }
+    } else {
+        // 未配置状态
+        statusIcon.className = 'bi bi-x-circle text-muted me-2 flex-shrink-0';
+        statusIcon.style.fontSize = '1.25rem';
+        statusText.textContent = '未配置';
+        statusDetail.textContent = '请联系管理员配置';
+        statusDetail.title = '请联系管理员配置API密钥';
+        statusBadge.textContent = '未配置';
+        statusBadge.className = 'badge bg-secondary flex-shrink-0 ms-2';
+        statusBadge.style.fontSize = '0.7rem';
+        
+        // 🆕 隐藏模型信息
+        if (apiType === 'siliconflow') {
+            const modelInfo = document.getElementById('siliconflowModelInfo');
+            if (modelInfo) {
+                modelInfo.classList.add('d-none');
+            }
+        }
+    }
+}
+
+// 显示通知消息
+function showNotification(type, message) {
+    // 创建通知元素
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        <i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // 添加到页面
+    document.body.appendChild(notification);
+    
+    // 自动移除
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// 防抖计时器
+let saveTimers = {};
+
+/* 
+// 以下函数已废弃 - API密钥现在由管理员统一配置
+// 自动保存API密钥（带防抖）
+async function autoSaveApiKey(provider, value) {
+    // 功能已移除，现在通过申请流程由管理员配置
+    console.log('autoSaveApiKey已废弃，请使用requestApiConfig申请配置');
+}
+
+// 执行实际的API密钥保存
+async function performApiKeySave(provider, value) {
+    // 功能已移除，现在通过申请流程由管理员配置
+    console.log('performApiKeySave已废弃，请使用requestApiConfig申请配置');
+}
+*/
+
+// 保存API密钥 - 已废弃，现在使用申请制
+async function saveApiKeys() {
+    showAlert('info', 'API密钥配置已改为申请制，请使用右侧的"申请配置"按钮申请API密钥配置');
+    console.log('saveApiKeys已废弃，现在使用申请制流程，请使用requestApiConfig申请配置');
+}
+
+// 显示修改密码对话框
+function showChangePasswordDialog() {
+    const oldPassword = prompt('请输入当前密码：');
+    if (!oldPassword) return;
+    
+    const newPassword = prompt('请输入新密码（需8位以上，含大小写字母、数字和特殊字符）：');
+    if (!newPassword) return;
+    if (newPassword.length < 8) { showAlert('warning', '密码至少8位'); return; }
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword)) { showAlert('warning', '密码须包含大小写字母'); return; }
+    if (!/\d/.test(newPassword)) { showAlert('warning', '密码须包含数字'); return; }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) { showAlert('warning', '密码须包含特殊字符'); return; }
+
+    const confirmPassword = prompt('请确认新密码：');
+    if (newPassword !== confirmPassword) {
+        showAlert('warning', '两次输入的密码不一致！');
+        return;
+    }
+    
+    changePassword(oldPassword, newPassword);
+}
+
+// 修改密码
+async function changePassword(oldPassword, newPassword) {
+    try {
+        const response = await fetch('/api/change-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                old_password: oldPassword,
+                new_password: newPassword
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', '密码修改成功！');
+        } else {
+            showAlert('danger', result.message || '密码修改失败');
+        }
+    } catch (error) {
+        console.error('Change password error:', error);
+        showAlert('danger', '修改密码时发生错误');
+    }
+}
+
+// 退出登录
+function logout() {
+    if (confirm('确定要退出登录吗？')) {
+        showAlert('info', '正在退出登录...', 1000);
+        setTimeout(() => {
+            window.location.href = '/word/logout';
+        }, 500);
+    }
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化Bootstrap工具提示
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // 加载用户统计数据
+    loadUserStats();
+});
+</script>
+{% endblock %}

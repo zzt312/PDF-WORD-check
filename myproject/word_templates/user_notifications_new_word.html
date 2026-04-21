@@ -1,0 +1,42 @@
+{% extends "base_notifications_word.html" %}
+
+{% block notification_title %}用户通知中心{% endblock %}
+
+{% block header_title %}通知中心{% endblock %}
+{% block header_subtitle %}查看系统消息和重要通知{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-outline-light btn-sm me-2" onclick="location.href='/word/user/send-feedback'">
+    <i class="fe fe-message-circle me-2"></i>发送反馈
+</button>
+<button class="btn btn-outline-light btn-sm" onclick="markAllAsRead()" id="markAllBtn">
+    <i class="bi bi-check2-all me-2"></i>全部标记已读
+</button>
+{% endblock %}
+
+{% block notification_js %}
+<script>
+// 用户通知页面特定功能
+async function markAllAsRead() {
+    if (!confirm('确定要将所有通知标记为已读吗？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/user/notifications/mark-all-read', { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('success', '所有通知已标记为已读');
+            loadNotifications(currentPage, currentFilter);
+            updateNotificationBadge();
+        } else {
+            throw new Error(data.message || '操作失败');
+        }
+    } catch (error) {
+        console.error('批量标记已读失败:', error);
+        showNotification('error', `操作失败: ${error.message}`);
+    }
+}
+</script>
+{% endblock %}

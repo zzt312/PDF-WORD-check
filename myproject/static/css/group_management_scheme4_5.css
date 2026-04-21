@@ -1,0 +1,125 @@
+/* 方案4: 极简扁平化按钮设计 */
+.btn-icon-flat {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+    font-weight: 500;
+}
+
+.btn-icon-flat.btn-primary-flat {
+    background: #f8f9ff;
+    color: #6f42c1;
+    border: 2px solid #e9ecef;
+}
+
+.btn-icon-flat.btn-primary-flat:hover {
+    background: #6f42c1;
+    color: white;
+    border: 2px solid #6f42c1;
+    transform: scale(1.05);
+}
+
+.btn-icon-flat.btn-danger-flat {
+    background: #fff5f5;
+    color: #dc3545;
+    border: 2px solid #ffe6e6;
+}
+
+.btn-icon-flat.btn-danger-flat:hover {
+    background: #dc3545;
+    color: white;
+    border: 2px solid #dc3545;
+    transform: scale(1.05);
+}
+
+/* 禅意动画 */
+.btn-icon-flat i {
+    transition: transform 0.2s ease;
+}
+
+.btn-icon-flat:hover i {
+    transform: scale(1.15);
+}
+
+.btn-icon-flat:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+}
+
+
+/* 方案5: 立体阴影按钮设计 */
+.btn-icon-3d {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    position: relative;
+    font-weight: 600;
+}
+
+.btn-icon-3d.btn-primary-3d {
+    background: linear-gradient(145deg, #7c3aed, #5b21b6);
+    color: white;
+    box-shadow: 
+        5px 5px 15px rgba(123, 58, 237, 0.4),
+        -5px -5px 15px rgba(255, 255, 255, 0.1);
+}
+
+.btn-icon-3d.btn-primary-3d:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+        7px 7px 20px rgba(123, 58, 237, 0.5),
+        -7px -7px 20px rgba(255, 255, 255, 0.15);
+}
+
+.btn-icon-3d.btn-primary-3d:active {
+    transform: translateY(1px);
+    box-shadow: 
+        2px 2px 8px rgba(123, 58, 237, 0.3),
+        -2px -2px 8px rgba(255, 255, 255, 0.05);
+}
+
+.btn-icon-3d.btn-danger-3d {
+    background: linear-gradient(145deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 
+        5px 5px 15px rgba(239, 68, 68, 0.4),
+        -5px -5px 15px rgba(255, 255, 255, 0.1);
+}
+
+.btn-icon-3d.btn-danger-3d:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+        7px 7px 20px rgba(239, 68, 68, 0.5),
+        -7px -7px 20px rgba(255, 255, 255, 0.15);
+}
+
+.btn-icon-3d.btn-danger-3d:active {
+    transform: translateY(1px);
+    box-shadow: 
+        2px 2px 8px rgba(239, 68, 68, 0.3),
+        -2px -2px 8px rgba(255, 255, 255, 0.05);
+}
+
+/* 立体图标效果 */
+.btn-icon-3d i {
+    transition: all 0.3s ease;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+.btn-icon-3d:hover i {
+    transform: scale(1.1);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+}

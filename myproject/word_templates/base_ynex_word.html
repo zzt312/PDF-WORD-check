@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr" data-nav-layout="vertical" data-theme-mode="light" data-header-styles="light" data-menu-styles="dark" data-toggled="close">
+<head>
+    <!-- Meta Data -->
+    <meta charset="UTF-8">
+    <meta name='viewport' content='width=1200, user-scalable=yes'>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}文档重点提取系统{% endblock %}</title>
+    <meta name="Description" content="文档重点提取系统管理后台">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <!-- Bootstrap Css -->
+    <link href="{{ url_for('static', filename='assets/libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    
+    <!-- YNEX Style Css -->
+    <link href="{{ url_for('static', filename='css/ynex-styles.min.css') }}" rel="stylesheet">
+    
+    <!-- YNEX Icons Css -->
+    <link href="{{ url_for('static', filename='css/ynex-icons.css') }}" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link href="{{ url_for('static', filename='icon-fonts/bootstrap-icons/icons/font/bootstrap-icons.css') }}" rel="stylesheet">
+    
+    <!-- Boxicons -->
+    <link href="{{ url_for('static', filename='icon-fonts/boxicons/css/boxicons.min.css') }}" rel="stylesheet">
+    
+    <!-- Boxicons CSS -->
+    <link href="{{ url_for('static', filename='icon-fonts/boxicons/css/boxicons.min.css') }}" rel="stylesheet">
+    
+    <!-- Additional CSS -->
+    {% block extra_css %}{% endblock %}
+    
+    <style>
+        /* 通用重置样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
+            background: #ffffff;
+            line-height: normal;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        /* 管理员权限样式 */
+        .admin-only {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .admin-only.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+        
+        .admin-only.hidden {
+            display: none;
+        }
+        
+        /* 侧边栏基本样式 - 支持展开收起 */
+        .app-sidebar {
+            background: linear-gradient(180deg, #4c2a85 0%, #2d1b4d 100%) !important;
+        }
+        
+        /* 去掉侧边栏滚动轴 */
+        .main-sidebar {
+            overflow: hidden !important;
+        }
+        
+        .main-sidebar::-webkit-scrollbar {
+            display: none !important;
+        }
+        
+        /* 深紫色侧边栏主题 */
+        .main-sidebar-header {
+            background: rgba(76, 42, 133, 0.95) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .main-sidebar-header .header-logo span {
+            color: #ffffff !important;
+        }
+        
+        .side-menu__item {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        
+        .side-menu__icon {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+        
+        .side-menu__label {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        
+        .slide__category .category-name {
+            color: rgba(255, 255, 255, 0.6) !important;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        
+        /* 主内容区域白色背景 */
+        .main-content {
+            background: #ffffff !important;
+        }
+        
+        .app-content {
+            background: #ffffff !important;
+        }
+        
+        .container-fluid {
+            background: #ffffff !important;
+        }
+        
+        /* 页面整体白色背景 */
+        .page {
+            background: #ffffff !important;
+        }
+        
+        /* 侧边栏当前页面高亮样式 - 深紫色主题适配 */
+        .slide.has-active > .side-menu__item.active,
+        .side-menu__item.active {
+            background: rgba(255, 255, 255, 0.95) !important;
+            color: #4c2a85 !important;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+            transform: translateX(3px);
+            border-left: 4px solid #4c2a85;
+        }
+        
+        .slide.has-active > .side-menu__item.active .side-menu__icon,
+        .side-menu__item.active .side-menu__icon {
+            color: #4c2a85 !important;
+        }
+        
+        .slide.has-active > .side-menu__item.active .side-menu__label,
+        .side-menu__item.active .side-menu__label {
+            color: #4c2a85 !important;
+            font-weight: 600;
+        }
+        
+        /* 悬停效果 - 深紫色主题适配 */
+        .slide:not(.has-active) > .side-menu__item:hover,
+        .side-menu__item:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #fff !important;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            transform: translateX(2px);
+        }
+        
+        .slide:not(.has-active) > .side-menu__item:hover .side-menu__icon,
+        .side-menu__item:hover:not(.active) .side-menu__icon {
+            color: #fff !important;
+        }
+        
+        .slide:not(.has-active) > .side-menu__item:hover .side-menu__label,
+        .side-menu__item:hover:not(.active) .side-menu__label {
+            color: #fff !important;
+        }
+        
+        /* 侧边栏使用YNEX默认样式和行为 */
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <!-- Start::app-header -->
+        <header class="app-header">
+            <div class="main-header-container container-fluid">
+                <!-- Start::header-content-left -->
+                <div class="header-content-left">
+                    <!-- Start::header-element -->
+                    <div class="header-element">
+                        <!-- Start::header-link -->
+                        <a aria-label="Hide Sidebar" class="sidemenu-toggle header-link animated-arrow hor-toggle horizontal-navtoggle" data-bs-toggle="sidebar" href="javascript:void(0);"><span></span></a>
+                        <!-- End::header-link -->
+                    </div>
+                    <!-- End::header-element -->
+
+                    <!-- Start::header-element -->
+                    <div class="header-element">
+                        <div class="horizontal-logo">
+                            <a href="{{ url_for('dashboard') }}" class="header-logo">
+                                <span class="fw-bold fs-18">文档重点提取系统</span>
+                            </a>
+                        </div>
+                    </div>
+                    <!-- End::header-element -->
+                </div>
+                <!-- End::header-content-left -->
+
+                {# 检测当前是否在 Word 版页面 #}
+                {% set is_word = request.endpoint and request.endpoint.startswith('word_') %}
+
+                {% include 'includes/header_right.html' %}
+            </div>
+            <!-- End::main-header-container -->
+        </header>
+        <!-- End::app-header -->
+
+        <!-- Start::app-sidebar -->
+        <aside class="app-sidebar sticky" id="sidebar">
+
+            <!-- Start::main-sidebar-header -->
+            <div class="main-sidebar-header">
+                <a href="{{ url_for('word_dashboard' if is_word else 'dashboard') }}" class="header-logo">
+                    <span class="desktop-logo fw-bold text-white fs-20">文档重点提取系统</span>
+                    <span class="desktop-dark fw-bold text-white fs-20">文档重点提取系统</span>
+                </a>
+            </div>
+            <!-- End::main-sidebar-header -->
+
+            <!-- Start::main-sidebar -->
+            <div class="main-sidebar" id="sidebar-scroll">
+
+                <!-- Start::nav -->
+                <nav class="main-menu-container nav nav-pills flex-column sub-open">
+                    <div class="slide-left" id="slide-left">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191" width="24" height="24" viewBox="0 0 24 24"> <path d="M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z"></path> </svg>
+                    </div>
+                    <ul class="main-menu">
+                        <!-- Start::slide__category -->
+                        <li class="slide__category"><span class="category-name">主要功能</span></li>
+                        <!-- End::slide__category -->
+
+                        <!-- Start::slide -->
+                        {% set dash_endpoint = 'word_dashboard' if is_word else 'dashboard' %}
+                        <li class="slide {{ 'has-active' if request.endpoint == dash_endpoint else '' }}">
+                            <a href="{{ url_for(dash_endpoint) }}" class="side-menu__item {{ 'active' if request.endpoint == dash_endpoint else '' }}">
+                                <i class="bx bx-home side-menu__icon"></i>
+                                <span class="side-menu__label">上传文件</span>
+                            </a>
+                        </li>
+                        <!-- End::slide -->
+
+                        <!-- Start::slide -->
+                        {% set parsed_endpoint = 'word_parsed_documents' if is_word else 'parsed_documents' %}
+                        <li class="slide {{ 'has-active' if request.endpoint == parsed_endpoint else '' }}">
+                            <a href="{{ url_for(parsed_endpoint) }}" class="side-menu__item {{ 'active' if request.endpoint == parsed_endpoint else '' }}">
+                                <i class="bx bx-file side-menu__icon"></i>
+                                <span class="side-menu__label">已解析文档</span>
+                            </a>
+                        </li>
+                        <!-- End::slide -->
+
+                        <!-- Start::slide__category -->
+                        <li class="slide__category"><span class="category-name">用户中心</span></li>
+                        <!-- End::slide__category -->
+
+                        <!-- Start::slide -->
+                        {% set userinfo_endpoint = 'word_user_info_ynex' if is_word else 'user_info_ynex' %}
+                        <li class="slide {{ 'has-active' if request.endpoint == userinfo_endpoint else '' }}">
+                            <a href="{{ url_for(userinfo_endpoint) }}" class="side-menu__item {{ 'active' if request.endpoint == userinfo_endpoint else '' }}">
+                                <i class="bx bx-user-circle side-menu__icon"></i>
+                                <span class="side-menu__label">个人信息</span>
+                            </a>
+                        </li>
+                        <!-- End::slide -->
+
+                        <!-- Start::slide__category -->
+                        {% if session.get('role') in ['admin', 'premium'] %}
+                        <li class="slide__category admin-only"><span class="category-name">管理专区</span></li>
+                        <!-- End::slide__category -->
+
+                        <!-- Start::slide -->
+                        {% set admin_dash_endpoint = 'word_admin_dashboard' if is_word else 'admin_dashboard' %}
+                        <li class="slide admin-only {{ 'has-active' if request.endpoint == admin_dash_endpoint else '' }}">
+                            <a href="{{ url_for(admin_dash_endpoint) }}" class="side-menu__item {{ 'active' if request.endpoint == admin_dash_endpoint else '' }}">
+                                <i class="bx bx-group side-menu__icon"></i>
+                                <span class="side-menu__label">管理员仪表板</span>
+                            </a>
+                        </li>
+                        <!-- End::slide -->
+
+                        <!-- Start::slide -->
+                        {% set admin_users_endpoint = 'word_admin_users' if is_word else 'admin_users' %}
+                        <li class="slide admin-only {{ 'has-active' if request.endpoint == admin_users_endpoint else '' }}">
+                            <a href="{{ url_for(admin_users_endpoint) }}" class="side-menu__item {{ 'active' if request.endpoint == admin_users_endpoint else '' }}">
+                                <i class="bx bx-group side-menu__icon"></i>
+                                <span class="side-menu__label">用户管理</span>
+                            </a>
+                        </li>
+                        <!-- End::slide -->
+
+                        <!-- Start::slide -->
+                        {% set group_endpoint = 'word_group_management' if is_word else 'group_management' %}
+                        <li class="slide admin-only {{ 'has-active' if request.endpoint == group_endpoint else '' }}">
+                            <a href="{{ url_for(group_endpoint) }}" class="side-menu__item {{ 'active' if request.endpoint == group_endpoint else '' }}">
+                                <i class="bx bx-objects-vertical-center side-menu__icon"></i>
+                                <span class="side-menu__label">分组管理</span>
+                            </a>
+                        </li>
+                        <!-- End::slide -->
+                        {% endif %}
+
+                        <!-- Start::slide__category -->
+                        <li class="slide__category"><span class="category-name">系统设置</span></li>
+                        <!-- End::slide__category -->
+
+                        <!-- Start::slide -->
+                        <li class="slide">
+                            <a href="{{ url_for('word_logout' if is_word else 'logout') }}" class="side-menu__item">
+                                <i class="bx bx-log-out side-menu__icon"></i>
+                                <span class="side-menu__label">退出登录</span>
+                            </a>
+                        </li>
+                        <!-- End::slide -->
+                    </ul>
+                    <div class="slide-right" id="slide-right"><svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191" width="24" height="24" viewBox="0 0 24 24"> <path d="M10.707 17.707 16.414 12l-5.707-5.707-1.414 1.414L13.586 12l-4.293 4.293z"></path> </svg></div>
+                </nav>
+                <!-- End::nav -->
+
+            </div>
+            <!-- End::main-sidebar -->
+
+        </aside>
+        <!-- End::app-sidebar -->
+
+        <!-- Start::app-content -->
+        <div class="main-content app-content">
+            <div class="container-fluid">
+                {% block content %}
+                <!-- 页面内容 -->
+                {% endblock %}
+            </div>
+        </div>
+        <!-- End::app-content -->
+    </div>
+    
+    <!-- YNEX默认响应式遮罩层 -->
+    <div id="responsive-overlay"></div>
+
+    <!-- CSRF保护：自动为所有 fetch POST/PUT/DELETE 请求添加 CSRF Token -->
+    <script>
+    (function(){
+        var origFetch = window.fetch;
+        window.fetch = function(url, opts) {
+            opts = opts || {};
+            if (opts.method && /^(POST|PUT|DELETE|PATCH)$/i.test(opts.method)) {
+                var token = document.querySelector('meta[name="csrf-token"]');
+                if (token) {
+                    opts.headers = opts.headers || {};
+                    if (opts.headers instanceof Headers) {
+                        if (!opts.headers.has('X-CSRFToken')) opts.headers.set('X-CSRFToken', token.content);
+                    } else {
+                        if (!opts.headers['X-CSRFToken']) opts.headers['X-CSRFToken'] = token.content;
+                    }
+                }
+            }
+            return origFetch.call(this, url, opts);
+        };
+    })();
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="{{ url_for('static', filename='assets/libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    
+    <!-- YNEX Default Menu JS (必须在其他YNEX脚本之前加载) -->
+    <script src="{{ url_for('static', filename='js/defaultmenu.min.js') }}"></script>
+    
+    <!-- YNEX Main JS -->
+    <script src="{{ url_for('static', filename='js/ynex-main.js') }}"></script>
+    
+    <!-- YNEX侧边栏控制 - 与comprehensive_processor保持一致 -->
+    <script>
+        // YNEX侧边栏控制（与comprehensive_processor.html保持一致）
+        function toggleSidebar() {
+            // 触发YNEX侧边栏
+            const sidebarToggle = document.querySelector('.sidemenu-toggle');
+            if (sidebarToggle) {
+                sidebarToggle.click();
+            }
+        }
+        
+        // 兼容原有函数
+        function openSidebar() {
+            toggleSidebar();
+        }
+        
+        function closeSidebar() {
+            // YNEX侧边栏会自动关闭
+        }
+        
+        // 全局侧边栏控制函数（供其他脚本调用）
+        window.toggleSidebar = toggleSidebar;
+        window.openSidebar = openSidebar;
+        window.closeSidebar = closeSidebar;
+    </script>
+    
+    <!-- 统一的现代化Toast消息提示系统 -->
+    <script>
+        // 简约现代化消息提示系统（全局统一版本）
+        function showAlert(type, message, duration = 3500) {
+            // 创建或获取悬浮提示容器
+            let container = document.getElementById('simple-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'simple-toast-container';
+                container.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 10000;
+                    max-width: 320px;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(container);
+            }
+            
+            // 创建唯一ID和配置
+            const toastId = 'simple-toast-' + Date.now();
+            const config = {
+                'success': {
+                    color: '#10b981',
+                    icon: 'bi-check-circle-fill'
+                },
+                'danger': {
+                    color: '#ef4444',
+                    icon: 'bi-x-circle-fill'
+                },
+                'warning': {
+                    color: '#f59e0b',
+                    icon: 'bi-exclamation-triangle-fill'
+                },
+                'info': {
+                    color: '#3b82f6',
+                    icon: 'bi-info-circle-fill'
+                }
+            };
+            
+            const style = config[type] || config['info'];
+            
+            // 创建简约悬浮提示HTML
+            const toastHtml = `
+                <div id="${toastId}" class="simple-toast" style="
+                    background: white;
+                    color: #374151;
+                    padding: 14px 16px;
+                    border-radius: 8px;
+                    margin-bottom: 8px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                    border-left: 4px solid ${style.color};
+                    pointer-events: auto;
+                    transform: translateX(100%);
+                    opacity: 0;
+                    transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    animation: slideInGentle 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+                ">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="${style.icon}" style="color: ${style.color}; font-size: 16px; flex-shrink: 0;"></i>
+                        <div style="
+                            flex: 1; 
+                            font-size: 14px; 
+                            line-height: 1.4;
+                            font-weight: 500;
+                        ">${message}</div>
+                        <button onclick="closeSimpleToast('${toastId}')" style="
+                            background: #f9fafb;
+                            border: none;
+                            color: #6b7280;
+                            cursor: pointer;
+                            padding: 0;
+                            width: 18px;
+                            height: 18px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            border-radius: 50%;
+                            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                            flex-shrink: 0;
+                            font-size: 10px;
+                        " onmouseover="this.style.background='#e5e7eb'; this.style.transform='scale(1.1)'; this.style.color='#374151';" 
+                           onmouseout="this.style.background='#f9fafb'; this.style.transform='scale(1)'; this.style.color='#6b7280';">
+                            ●
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // 添加动画样式（如果还没有）
+            if (!document.getElementById('simple-toast-styles')) {
+                const styles = document.createElement('style');
+                styles.id = 'simple-toast-styles';
+                styles.textContent = `
+                    @keyframes slideInGentle {
+                        0% {
+                            transform: translateX(100%) scale(0.95);
+                            opacity: 0;
+                        }
+                        60% {
+                            transform: translateX(-5px) scale(1.02);
+                            opacity: 0.9;
+                        }
+                        100% {
+                            transform: translateX(0) scale(1);
+                            opacity: 1;
+                        }
+                    }
+                    
+                    @keyframes slideOutGentle {
+                        0% {
+                            transform: translateX(0) scale(1);
+                            opacity: 1;
+                        }
+                        100% {
+                            transform: translateX(100%) scale(0.95);
+                            opacity: 0;
+                        }
+                    }
+                `;
+                document.head.appendChild(styles);
+            }
+            
+            // 添加到容器
+            container.insertAdjacentHTML('beforeend', toastHtml);
+            
+            // 自动消失
+            if (duration > 0) {
+                setTimeout(() => {
+                    closeSimpleToast(toastId);
+                }, duration);
+            }
+        }
+
+        // 关闭简约悬浮提示
+        function closeSimpleToast(toastId) {
+            const toast = document.getElementById(toastId);
+            if (toast) {
+                toast.style.animation = 'slideOutGentle 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+                setTimeout(() => {
+                    toast.remove();
+                }, 400);
+            }
+        }
+
+        // 将Flash消息转换为Toast提示
+        document.addEventListener('DOMContentLoaded', function() {
+            // 查找并转换Flash消息（支持新旧两种格式）
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(element) {
+                let type = 'info';
+                let message = '';
+                
+                // 新格式：使用data属性
+                if (element.hasAttribute('data-message')) {
+                    type = element.getAttribute('data-type') || 'info';
+                    message = element.getAttribute('data-message');
+                } else {
+                    // 旧格式：兼容处理
+                    message = element.textContent.trim();
+                    
+                    if (element.classList.contains('alert-success')) {
+                        type = 'success';
+                    } else if (element.classList.contains('alert-danger')) {
+                        type = 'danger';
+                    } else if (element.classList.contains('alert-warning')) {
+                        type = 'warning';
+                    }
+                }
+                
+                if (message) {
+                    showAlert(type, message);
+                }
+            });
+        });
+    </script>
+    
+    <!-- 全局通知徽章更新脚本 -->
+    {% include 'includes/header_right_js.html' %}
+    
+    <!-- Additional JS -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

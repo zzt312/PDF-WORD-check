@@ -1,0 +1,466 @@
+/* 用户通知中心样式 - 现代邮箱设计风格（超紧凑） */
+
+/* 基础容器 - 超紧凑 */
+.notification-center {
+    min-height: calc(100vh - 60px);
+    background: #f8f9fa;
+    padding: 0.25rem;
+}
+
+/* 页面头部 - 超紧凑型 */
+.page-header-breadcrumb {
+    margin: 0.5rem 0;
+    padding: 0;
+}
+
+.page-title {
+    font-size: 1rem !important;
+    margin-bottom: 0 !important;
+    font-weight: 600;
+}
+
+.badge {
+    font-size: 0.7rem;
+    padding: 0.125rem 0.375rem;
+}
+
+/* 筛选标签 - 超紧凑型 */
+.nav-pills .nav-link {
+    border-radius: 4px;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    margin-right: 0.125rem;
+    margin-bottom: 0.125rem;
+    border: 1px solid #dee2e6;
+    color: #6c757d;
+    background: #ffffff;
+    transition: all 0.15s ease;
+}
+
+.nav-pills .nav-link:hover {
+    background: #e9ecef;
+    color: #495057;
+    border-color: #adb5bd;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+/* 通知列表容器 */
+.notification-list-container {
+    background: #ffffff;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+/* 通知项 - 极简设计 */
+.notification-item {
+    transition: all 0.15s ease;
+    margin-bottom: 0;
+    border-left: 3px solid transparent;
+    background: #ffffff;
+    border-bottom: 1px solid #f1f3f4;
+    padding: 0.75rem;
+    cursor: pointer;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item:hover {
+    background: #f8f9fa;
+    border-left-color: #007bff;
+    transform: none;
+}
+
+.notification-item.unread {
+    background: rgba(0, 123, 255, 0.02);
+    border-left-color: #007bff;
+}
+
+.notification-item.unread .notification-title {
+    font-weight: 600;
+    color: #495057;
+}
+
+.notification-item.read {
+    opacity: 0.75;
+}
+
+.notification-item.read .notification-title {
+    font-weight: 500;
+    color: #6c757d;
+}
+
+/* 通知内容 */
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.375rem;
+}
+
+.notification-title {
+    font-size: 0.9rem;
+    line-height: 1.3;
+    margin: 0;
+    flex: 1;
+    padding-right: 0.5rem;
+}
+
+.notification-meta {
+    font-size: 0.75rem;
+    color: #6c757d;
+    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.notification-content {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #6c757d;
+    margin: 0.25rem 0 0.5rem 0;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.notification-content.expanded {
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    display: block;
+}
+
+/* 富文本内容样式 */
+.notification-content strong, 
+.notification-content b {
+    font-weight: 600;
+    color: #495057;
+}
+
+.notification-content em, 
+.notification-content i {
+    font-style: italic;
+}
+
+.notification-content ul, 
+.notification-content ol {
+    padding-left: 1.2rem;
+    margin: 0.25rem 0;
+}
+
+.notification-content li {
+    margin: 0.125rem 0;
+}
+
+.notification-content p {
+    margin: 0.25rem 0;
+}
+
+/* 通知操作按钮 */
+.notification-actions {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.notification-item:hover .notification-actions {
+    opacity: 1;
+}
+
+.notification-actions .btn {
+    font-size: 0.7rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 3px;
+    line-height: 1.2;
+}
+
+/* 类型和优先级徽章 */
+.badge-type {
+    background: #e9ecef;
+    color: #495057;
+    font-size: 0.65rem;
+    padding: 0.125rem 0.25rem;
+    border-radius: 2px;
+    font-weight: 500;
+}
+
+.badge-priority {
+    font-size: 0.65rem;
+    padding: 0.125rem 0.25rem;
+    border-radius: 2px;
+    font-weight: 500;
+}
+
+.badge-priority.low {
+    background: #6c757d;
+    color: white;
+}
+
+.badge-priority.normal {
+    background: #28a745;
+    color: white;
+}
+
+.badge-priority.high {
+    background: #fd7e14;
+    color: white;
+}
+
+.badge-priority.urgent {
+    background: #dc3545;
+    color: white;
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #6c757d;
+    background: #ffffff;
+    border-radius: 4px;
+}
+
+.empty-state .empty-icon {
+    font-size: 2.5rem;
+    opacity: 0.4;
+    margin-bottom: 0.75rem;
+    color: #dee2e6;
+}
+
+.empty-state h5 {
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* 加载状态 */
+.loading-state {
+    text-align: center;
+    padding: 1.5rem;
+    color: #6c757d;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* 分页 */
+.pagination {
+    margin: 0;
+    gap: 0.125rem;
+}
+
+.pagination .page-item {
+    margin: 0;
+}
+
+.pagination .page-link {
+    border: 1px solid #dee2e6;
+    color: #007bff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    color: #0056b3;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+
+/* 操作按钮组 */
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    line-height: 1.3;
+}
+
+.btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.btn-outline-light:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: white;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .notification-center {
+        padding: 0.25rem;
+    }
+    
+    .notification-item {
+        padding: 0.5rem;
+    }
+    
+    .notification-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .notification-meta {
+        align-items: flex-start;
+        flex-direction: row;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    
+    .notification-title {
+        font-size: 0.85rem;
+        padding-right: 0;
+    }
+    
+    .notification-content {
+        font-size: 0.75rem;
+    }
+    
+    .page-title {
+        font-size: 1rem !important;
+    }
+    
+    .nav-pills .nav-link {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+/* 滚动优化 */
+.notification-list-container {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* 动画优化 */
+.notification-item {
+    animation: none;
+}
+
+.fade-in {
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* 新通知提示 */
+.badge-new {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    color: white;
+    font-size: 0.65rem;
+    animation: none;
+}
+
+.new-notification-indicator {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 8px;
+    height: 8px;
+    background: #007bff;
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0);
+    animation: newIndicator 0.3s ease-out forwards;
+}
+
+@keyframes newIndicator {
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 紧凑布局优化 */
+.container-fluid {
+    padding: 0.5rem;
+}
+
+.row {
+    margin: 0;
+}
+
+.col-12 {
+    padding: 0;
+}
+
+/* 标签间距优化 */
+.d-md-flex.align-items-center {
+    gap: 0.5rem;
+}
+
+.btn-group {
+    gap: 0.25rem;
+}
+
+/* 卡片头部优化 */
+.card-header {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.card-body {
+    padding: 0.75rem;
+}

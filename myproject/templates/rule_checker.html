@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr" data-nav-layout="vertical" data-theme-mode="light" data-header-styles="light" data-menu-styles="dark" data-toggled="close">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1200, user-scalable=yes">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>规则检查中心 - 文档规则验证系统</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='assets/images/brand-logos/favicon.ico') }}" type="image/x-icon">
+    
+    <!-- Bootstrap Css -->
+    <link href="{{ url_for('static', filename='assets/libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    
+    <!-- YNEX Style Css -->
+    <link href="{{ url_for('static', filename='css/ynex-styles.min.css') }}" rel="stylesheet">
+    
+    <!-- YNEX Icons Css -->
+    <link href="{{ url_for('static', filename='css/ynex-icons.css') }}" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link href="{{ url_for('static', filename='icon-fonts/bootstrap-icons/icons/font/bootstrap-icons.css') }}" rel="stylesheet">
+    
+    <!-- Boxicons -->
+    <link href="{{ url_for('static', filename='icon-fonts/boxicons/css/boxicons.min.css') }}" rel="stylesheet">
+    
+    <style>
+        /* 深紫色侧边栏主题 - 与其他页面保持一致 */
+        .app-sidebar {
+            background: linear-gradient(180deg, #4c2a85 0%, #2d1b4d 100%) !important;
+        }
+        
+        .main-sidebar {
+            overflow: hidden !important;
+        }
+        
+        .main-sidebar::-webkit-scrollbar {
+            display: none !important;
+        }
+        
+        .main-sidebar-header {
+            background: rgba(76, 42, 133, 0.95) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .main-sidebar-header .header-logo span {
+            color: #ffffff !important;
+        }
+        
+        .side-menu__item {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        
+        .side-menu__icon {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+        
+        .side-menu__label {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        
+        .slide__category .category-name {
+            color: rgba(255, 255, 255, 0.6) !important;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        
+        /* 侧边栏当前页面高亮样式 */
+        .slide.has-active > .side-menu__item.active,
+        .side-menu__item.active {
+            background: rgba(255, 255, 255, 0.95) !important;
+            color: #4c2a85 !important;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+            transform: translateX(3px);
+            border-left: 4px solid #4c2a85;
+        }
+        
+        .slide.has-active > .side-menu__item.active .side-menu__icon,
+        .slide.has-active > .side-menu__item.active .side-menu__label,
+        .side-menu__item.active .side-menu__icon,
+        .side-menu__item.active .side-menu__label {
+            color: #4c2a85 !important;
+        }
+
+        /* 主内容区域样式 */
+        .main-content {
+            padding: 30px 40px;
+            min-height: 100vh;
+            background: white;
+        }
+
+        /* 页面标题 */
+        .page-title {
+            color: #333;
+            border-bottom: 3px solid #4c2a85;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* 统计信息卡片 - 紧凑样式 */
+        .stats {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .stat-card {
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            text-align: center;
+            min-width: 90px;
+        }
+
+        .stat-card .label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 3px;
+            white-space: nowrap;
+        }
+
+        .stat-card .value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4c2a85;
+            line-height: 1;
+        }
+
+        .stat-card .value.danger {
+            color: #f56565;
+        }
+
+        .stat-card .value.success {
+            color: #48bb78;
+        }
+
+        /* 表格容器 */
+        .table-container {
+            margin-top: 20px;
+        }
+
+        .table-header {
+            padding: 1rem 1.5rem;
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .table-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            flex-shrink: 0;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-action {
+            padding: 0.5rem 1.25rem;
+            border: 1px solid #4c2a85;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: white;
+            color: #4c2a85;
+        }
+
+        .btn-export:hover {
+            background: #4c2a85;
+            color: white;
+        }
+
+        .btn-refresh {
+            background: #4c2a85;
+            color: white;
+            border: 1px solid #4c2a85;
+        }
+
+        .btn-refresh:hover {
+            background: #3d2268;
+            border-color: #3d2268;
+        }
+
+        /* 表格样式 */
+        .rule-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .rule-table thead {
+            background: #4c2a85;
+        }
+
+        .rule-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: white;
+            font-size: 0.875rem;
+        }
+
+        .rule-table tbody tr {
+            border-bottom: 1px solid #ddd;
+            transition: background 0.2s ease;
+        }
+
+        .rule-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .rule-table td {
+            padding: 12px;
+            color: #333;
+            font-size: 0.875rem;
+            vertical-align: top;
+        }
+
+        /* 规则名称列样式 */
+        .rule-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .rule-severity {
+            font-weight: bold;
+        }
+
+        .severity-high {
+            color: #f56565;
+        }
+
+        .severity-medium {
+            color: #ed8936;
+        }
+
+        .severity-low {
+            color: #4299e1;
+        }
+
+        /* 空状态样式 */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #a0aec0;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h4 {
+            margin-bottom: 0.5rem;
+            color: #718096;
+        }
+
+        .empty-state p {
+            color: #a0aec0;
+        }
+
+        /* 模板数据标识 */
+        .template-badge {
+            display: inline-block;
+            background: #fef5e7;
+            color: #d68910;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid #f39c12;
+            margin-left: 1rem;
+        }
+
+        /* 过滤器区域 */
+        .filter-bar {
+            padding: 1rem 1.5rem;
+            background: #f7fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-item label {
+            font-size: 0.875rem;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .filter-select {
+            padding: 0.5rem 1rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            color: #2d3748;
+            cursor: pointer;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .stats {
+                flex-direction: column;
+            }
+
+            .table-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .table-actions {
+                width: 100%;
+                justify-content: stretch;
+            }
+
+            .btn-action {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+
+        /* ========== 重新检查进度遮罩层 ========== */
+        .recheck-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(3px);
+        }
+        .recheck-overlay.active { display: flex; }
+
+        .recheck-modal {
+            background: #fff;
+            border-radius: 16px;
+            padding: 36px 40px;
+            width: 480px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            animation: recheckSlideIn 0.3s ease;
+        }
+        @keyframes recheckSlideIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .recheck-modal h4 {
+            margin: 0 0 6px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #333;
+        }
+        .recheck-modal .subtitle {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 24px;
+        }
+
+        /* 进度条 */
+        .recheck-progress-bar {
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .recheck-progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4c2a85, #7c5cbf);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* 步骤列表 */
+        .recheck-steps {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px;
+        }
+        .recheck-steps li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 0.88rem;
+            color: #aaa;
+            transition: color 0.3s;
+        }
+        .recheck-steps li.active  { color: #4c2a85; font-weight: 600; }
+        .recheck-steps li.done    { color: #48bb78; }
+        .recheck-steps li.error   { color: #f56565; }
+        .recheck-steps li .step-icon {
+            width: 22px; height: 22px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .recheck-steps li .step-icon.pending  { background: #e9ecef; color: #aaa; }
+        .recheck-steps li.active .step-icon   { background: #4c2a85; color: #fff; animation: recheckPulse 1.2s infinite; }
+        .recheck-steps li.done .step-icon     { background: #48bb78; color: #fff; }
+        .recheck-steps li.error .step-icon    { background: #f56565; color: #fff; }
+        @keyframes recheckPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(76,42,133,0.4); }
+            50%      { box-shadow: 0 0 0 6px rgba(76,42,133,0); }
+        }
+
+        .recheck-footer {
+            text-align: center;
+            font-size: 0.82rem;
+            color: #999;
+        }
+        .recheck-footer .elapsed {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ========== Toast 提示 ========== */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast-msg {
+            padding: 14px 22px;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            animation: toastIn 0.35s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 420px;
+        }
+        .toast-msg.success { background: linear-gradient(135deg, #48bb78, #38a169); }
+        .toast-msg.error   { background: linear-gradient(135deg, #f56565, #e53e3e); }
+        .toast-msg.info    { background: linear-gradient(135deg, #4c2a85, #6b46c1); }
+        .toast-msg i { font-size: 1.2rem; }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(40px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateX(0); }
+            to   { opacity: 0; transform: translateX(40px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- Start::app-header -->
+        <header class="app-header">
+            <div class="main-header-container container-fluid">
+                <!-- Start::header-content-left -->
+                <div class="header-content-left">
+                    <!-- Start::header-element -->
+                    <div class="header-element">
+                        <!-- Start::header-link -->
+                        <a aria-label="Hide Sidebar" class="sidemenu-toggle header-link animated-arrow hor-toggle horizontal-navtoggle" data-bs-toggle="sidebar" href="javascript:void(0);"><span></span></a>
+                        <!-- End::header-link -->
+                    </div>
+                    <!-- End::header-element -->
+
+                    <!-- Start::header-element -->
+                    <div class="header-element">
+                        <div class="horizontal-logo">
+                            <a href="{{ url_for('rule_checker') }}" class="header-logo">
+                                <span class="fw-bold fs-18">规则检查中心</span>
+                            </a>
+                        </div>
+                    </div>
+                    <!-- End::header-element -->
+                </div>
+                <!-- End::header-content-left -->
+
+                {% include 'includes/header_right.html' %}
+            </div>
+        </header>
+        <!-- End::app-header -->
+
+        <!-- 引用统一侧边栏 -->
+        {% include 'includes/sidebar.html' %}
+
+        <!-- Start::app-content -->
+        <div class="main-content app-content">
+                
+                <!-- 页面标题 -->
+                <h1 class="page-title">📋 国家自然科学基金申请书初筛检查报告</h1>
+                
+                <!-- 规则错误表格 -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3>规则错误详情</h3>
+                        
+                        <!-- 统计信息卡片 -->
+                        <div class="stats">
+                            <div class="stat-card">
+                                <div class="label">检查规则数</div>
+                                <div class="value" id="totalRules">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">发现违规项</div>
+                                <div class="value danger" id="violationCount">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="label">通过率</div>
+                                <div class="value success" id="passRate">-</div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-actions">
+                            <button class="btn-action btn-export" onclick="exportResults()">
+                                <i class="bi bi-download"></i>
+                                导出报告
+                            </button>
+                            <button class="btn-action btn-refresh" onclick="refreshCheck()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                重新检查
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 过滤器 -->
+                    <div class="filter-bar">
+                        <div class="filter-item">
+                            <label>严重程度：</label>
+                            <select class="filter-select" id="severityFilter" onchange="filterTable()">
+                                <option value="all">全部</option>
+                                <option value="high">高</option>
+                                <option value="medium">中</option>
+                                <option value="low">低</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 表格内容 -->
+                    <table class="rule-table" id="ruleTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">错误规则</th>
+                                <th style="width: 40%;">错误原文及位置</th>
+                                <th style="width: 35%;">修改建议</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- 初筛结果将通过JavaScript动态加载 -->
+                            <tr>
+                                <td colspan="3" style="text-align: center; padding: 3rem; color: #666;">
+                                    <i class="bi bi-info-circle" style="font-size: 2rem; color: #999; margin-bottom: 1rem; display: block;"></i>
+                                    <p style="margin: 0;">请先从<strong>dashboard.html</strong>或<strong>综合处理页面</strong>点击"初筛检查"按钮</p>
+                                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">初筛结果已在PDF处理时自动生成并保存到数据库</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- 空状态（当没有数据时显示） -->
+                    <div class="empty-state" id="emptyState" style="display: none;">
+                        <i class="bi bi-check-circle"></i>
+                        <h4>恭喜！未发现规则违反</h4>
+                        <p>当前文档已通过所有规则检查</p>
+                    </div>
+                </div>
+
+                <!-- 页面底部 -->
+                <div style="margin-top: 30px; text-align: center; color: #999; font-size: 12px;">
+                    <p style="margin: 5px 0;">报告更新时间：<span id="reportTime">-</span></p>
+                    <p style="margin: 5px 0;">国家自然科学基金申请书初筛检查系统 v1.0</p>
+                </div>
+
+        </div>
+        <!-- End::app-content -->
+
+    <!-- 重新检查进度遮罩层 -->
+    <div class="recheck-overlay" id="recheckOverlay">
+        <div class="recheck-modal">
+            <h4 id="recheckTitle">🔍 正在执行规则检查</h4>
+            <div class="subtitle" id="recheckSubtitle">共31条规则：28条正则/混合 + 3条LLM质量评估</div>
+            <div class="recheck-progress-bar">
+                <div class="fill" id="recheckProgressFill"></div>
+            </div>
+            <ul class="recheck-steps" id="recheckSteps">
+                <li data-step="prepare"><span class="step-icon pending">1</span><span>准备检查环境，加载文档内容</span></li>
+                <li data-step="regex"><span class="step-icon pending">2</span><span>执行正则规则检查（25条基础规则）</span></li>
+                <li data-step="c1c2"><span class="step-icon pending">3</span><span>C1/C2 混合检查（参考文献时效性+自引率）</span></li>
+                <li data-step="llm"><span class="step-icon pending">4</span><span>合并LLM质量评估结果（3条内容质量规则）</span></li>
+                <li data-step="save"><span class="step-icon pending">5</span><span>保存结果并渲染报告</span></li>
+            </ul>
+            <div class="recheck-footer">
+                已耗时 <span class="elapsed" id="recheckElapsed">0</span> 秒
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+    </div>
+    
+    <!-- YNEX默认响应式遮罩层 -->
+    <div id="responsive-overlay"></div>
+
+    <!-- CSRF保护：自动为所有 fetch POST 请求添加 CSRF Token -->
+    <script>
+    (function(){
+        var origFetch = window.fetch;
+        window.fetch = function(url, opts) {
+            opts = opts || {};
+            if (opts.method && /^(POST|PUT|DELETE|PATCH)$/i.test(opts.method)) {
+                var token = document.querySelector('meta[name="csrf-token"]');
+                if (token) {
+                    opts.headers = opts.headers || {};
+                    if (opts.headers instanceof Headers) {
+                        if (!opts.headers.has('X-CSRFToken')) opts.headers.set('X-CSRFToken', token.content);
+                    } else {
+                        if (!opts.headers['X-CSRFToken']) opts.headers['X-CSRFToken'] = token.content;
+                    }
+                }
+            }
+            return origFetch.call(this, url, opts);
+        };
+    })();
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="{{ url_for('static', filename='assets/libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    
+    <!-- YNEX Default Menu JS (必须在其他YNEX脚本之前加载) -->
+    <script src="{{ url_for('static', filename='js/defaultmenu.min.js') }}"></script>
+    
+    <!-- YNEX Main JS -->
+    <script src="{{ url_for('static', filename='js/ynex-main.js') }}"></script>
+    
+    <!-- YNEX侧边栏控制 - 与dashboard保持一致 -->
+    <script>
+        // YNEX侧边栏控制（与dashboard.html保持一致）
+        function toggleSidebar() {
+            // 触发YNEX侧边栏
+            const sidebarToggle = document.querySelector('.sidemenu-toggle');
+            if (sidebarToggle) {
+                sidebarToggle.click();
+            }
+        }
+        
+        // 兼容原有函数
+        function openSidebar() {
+            toggleSidebar();
+        }
+        
+        function closeSidebar() {
+            // YNEX侧边栏会自动关闭
+        }
+        
+        // 全局侧边栏控制函数（供其他脚本调用）
+        window.toggleSidebar = toggleSidebar;
+        window.openSidebar = openSidebar;
+        window.closeSidebar = closeSidebar;
+    </script>
+    
+    <!-- Custom JS -->
+    <script>
+        // 过滤表格
+        function filterTable() {
+            const severityFilter = document.getElementById('severityFilter').value;
+            const rows = document.querySelectorAll('#tableBody tr');
+            
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const severity = row.getAttribute('data-severity');
+                
+                const severityMatch = severityFilter === 'all' || severity === severityFilter;
+                
+                if (severityMatch) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // 更新统计
+            document.getElementById('violationCount').textContent = visibleCount;
+            
+            // 显示/隐藏空状态
+            document.getElementById('emptyState').style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+
+        // 导出结果
+        function exportResults() {
+            const tableBody = document.getElementById('tableBody');
+            const rows = tableBody.querySelectorAll('tr');
+            
+            if (rows.length === 0 || (rows.length === 1 && rows[0].cells.length === 1)) {
+                alert('没有可导出的数据，请先加载初筛结果。');
+                return;
+            }
+            
+            // 获取统计信息
+            const totalRules = document.getElementById('totalRules').textContent;
+            const violationCount = document.getElementById('violationCount').textContent;
+            const passRate = document.getElementById('passRate').textContent;
+            
+            // 构建HTML报告
+            let htmlContent = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初筛检查报告</title>
+    <style>
+        body { font-family: "Microsoft YaHei", Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 3px solid #4c2a85; padding-bottom: 10px; }
+        .stats { display: flex; gap: 20px; margin: 20px 0; }
+        .stat-card { flex: 1; padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center; }
+        .stat-card .label { font-size: 14px; color: #666; margin-bottom: 5px; }
+        .stat-card .value { font-size: 28px; font-weight: bold; color: #4c2a85; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #4c2a85; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #ddd; }
+        tr:hover { background: #f8f9fa; }
+        .severity-high { color: #f56565; font-weight: bold; }
+        .severity-medium { color: #ed8936; font-weight: bold; }
+        .severity-low { color: #4299e1; font-weight: bold; }
+        .footer { margin-top: 30px; text-align: center; color: #999; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 国家自然科学基金申请书初筛检查报告</h1>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="label">检查规则数</div>
+                <div class="value">${totalRules}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">发现违规项</div>
+                <div class="value" style="color: #f56565;">${violationCount}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">通过率</div>
+                <div class="value" style="color: #48bb78;">${passRate}</div>
+            </div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 25%;">错误规则</th>
+                    <th style="width: 40%;">错误原文及位置</th>
+                    <th style="width: 35%;">修改建议</th>
+                </tr>
+            </thead>
+            <tbody>
+`;
+            
+            // 遍历表格行
+            rows.forEach(row => {
+                if (row.cells.length === 3) {
+                    // 获取规则名称（第一个td中的strong标签）
+                    const ruleName = row.cells[0].querySelector('strong')?.textContent.trim() || '';
+                    const severity = row.getAttribute('data-severity') || 'medium';
+                    
+                    // 获取错误文本和位置（第二个td）
+                    const cell2Content = row.cells[1];
+                    const errorDiv = cell2Content.querySelector('div');
+                    const errorText = errorDiv?.textContent.trim() || '';
+                    const locationSmall = cell2Content.querySelector('small');
+                    const location = locationSmall?.textContent.trim() || '';
+                    
+                    // 获取建议（第三个td的内容）
+                    const suggestion = row.cells[2].textContent.trim() || '';
+                    
+                    htmlContent += `
+                <tr>
+                    <td>
+                        <strong>${ruleName}</strong><br>
+                        <span class="severity-${severity}">[${severity === 'high' ? '高' : severity === 'medium' ? '中' : '低'}]</span>
+                    </td>
+                    <td>
+                        <div style="margin-bottom: 10px;">${errorText}</div>
+                        <small style="color: #666;">${location}</small>
+                    </td>
+                    <td>${suggestion}</td>
+                </tr>
+`;
+                }
+            });
+            
+            htmlContent += `
+            </tbody>
+        </table>
+        
+        <div class="footer">
+            <p>报告生成时间：${new Date().toLocaleString('zh-CN')}</p>
+            <p>国家自然科学基金申请书初筛检查系统 v1.0</p>
+        </div>
+    </div>
+</body>
+</html>
+`;
+            
+            // 创建下载链接
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `初筛检查报告_${new Date().toISOString().slice(0, 10)}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            console.log('报告已导出为HTML格式');
+        }
+
+        // ==================== Toast 通知 ====================
+        function showToast(message, type = 'info', duration = 4000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast-msg ${type}`;
+            const icons = { success: 'bi-check-circle-fill', error: 'bi-x-circle-fill', info: 'bi-info-circle-fill' };
+            toast.innerHTML = `<i class="bi ${icons[type] || icons.info}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'toastOut 0.35s ease forwards';
+                setTimeout(() => toast.remove(), 350);
+            }, duration);
+        }
+
+        // ==================== 重新检查进度控制 ====================
+        let recheckTimer = null;
+        let recheckStartTime = 0;
+
+        function setRecheckStep(stepName, state) {
+            // state: 'active' | 'done' | 'error'
+            const li = document.querySelector(`#recheckSteps li[data-step="${stepName}"]`);
+            if (!li) return;
+            li.classList.remove('active', 'done', 'error');
+            li.classList.add(state);
+            const icon = li.querySelector('.step-icon');
+            icon.classList.remove('pending');
+            if (state === 'done') icon.innerHTML = '<i class="bi bi-check"></i>';
+            else if (state === 'error') icon.innerHTML = '<i class="bi bi-x"></i>';
+        }
+
+        function setRecheckProgress(pct) {
+            document.getElementById('recheckProgressFill').style.width = Math.min(pct, 100) + '%';
+        }
+
+        function showRecheckOverlay() {
+            // 重置所有步骤
+            document.querySelectorAll('#recheckSteps li').forEach(li => {
+                li.classList.remove('active', 'done', 'error');
+                const icon = li.querySelector('.step-icon');
+                icon.classList.add('pending');
+                icon.innerHTML = icon.textContent || '';
+            });
+            // 恢复步骤编号
+            const steps = document.querySelectorAll('#recheckSteps li .step-icon');
+            steps.forEach((icon, i) => { icon.innerHTML = (i + 1); icon.classList.add('pending'); });
+
+            setRecheckProgress(0);
+            document.getElementById('recheckTitle').textContent = '🔍 正在执行规则检查';
+            document.getElementById('recheckSubtitle').textContent = '正在重新运行全部规则检查，请稍候...';
+            document.getElementById('recheckElapsed').textContent = '0';
+            document.getElementById('recheckOverlay').classList.add('active');
+
+            recheckStartTime = Date.now();
+            recheckTimer = setInterval(() => {
+                const sec = Math.floor((Date.now() - recheckStartTime) / 1000);
+                document.getElementById('recheckElapsed').textContent = sec;
+            }, 1000);
+        }
+
+        function hideRecheckOverlay() {
+            if (recheckTimer) { clearInterval(recheckTimer); recheckTimer = null; }
+            document.getElementById('recheckOverlay').classList.remove('active');
+        }
+
+        // ==================== 重新检查主函数 ====================
+        function refreshCheck() {
+            if (!confirm('确定要重新运行全部规则检查吗？\n\n检查包括：\n✓ 25条纯正则规则检查\n✓ C1参考文献时效性 + C2自引率检查\n  （C2英文姓名匹配时会调用LLM辅助判断）\n✓ 读取已有LLM质量评估结果\n  （一键解析时已生成，无需重新调用LLM）\n\n预计耗时5-30秒')) {
+                return;
+            }
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const fileId = urlParams.get('file_id');
+            
+            if (!fileId) {
+                showToast('错误：未指定文件ID，请从综合处理页面跳转', 'error');
+                return;
+            }
+            
+            console.log('[重新检查] 开始重新检查，file_id:', fileId);
+            
+            // 显示进度遮罩
+            showRecheckOverlay();
+
+            // 模拟步骤推进（实际后端是同步的，通过定时器给出视觉反馈）
+            // Step 1: 准备环境 (立即)
+            setRecheckStep('prepare', 'active');
+            setRecheckProgress(5);
+
+            setTimeout(() => {
+                setRecheckStep('prepare', 'done');
+                setRecheckStep('regex', 'active');
+                setRecheckProgress(15);
+            }, 800);
+
+            setTimeout(() => {
+                setRecheckProgress(35);
+            }, 2500);
+
+            setTimeout(() => {
+                setRecheckStep('regex', 'done');
+                setRecheckStep('c1c2', 'active');
+                setRecheckProgress(55);
+            }, 5000);
+
+            setTimeout(() => {
+                setRecheckProgress(70);
+            }, 8000);
+            
+            // 调用API，强制刷新
+            fetch('/api/preliminary-check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_id: fileId, force_refresh: true })
+            })
+            .then(response => {
+                console.log('[重新检查] API响应状态:', response.status);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                console.log('[重新检查] API响应数据:', data);
+
+                // 快速完成剩余步骤动画
+                setRecheckStep('c1c2', 'done');
+                setRecheckStep('llm', 'active');
+                setRecheckProgress(85);
+
+                const llmMerged = data.llm_quality_merged;
+
+                setTimeout(() => {
+                    if (llmMerged) {
+                        setRecheckStep('llm', 'done');
+                    } else {
+                        // LLM质量评估未找到，显示跳过
+                        const llmLi = document.querySelector('#recheckSteps li[data-step="llm"]');
+                        if (llmLi) {
+                            llmLi.classList.remove('active');
+                            llmLi.classList.add('done');
+                            llmLi.querySelector('span:last-child').textContent = 'LLM质量评估数据不存在（跳过）';
+                            const icon = llmLi.querySelector('.step-icon');
+                            icon.innerHTML = '<i class="bi bi-dash"></i>';
+                            icon.style.background = '#a0aec0';
+                        }
+                    }
+                    setRecheckStep('save', 'active');
+                    setRecheckProgress(95);
+                }, 400);
+
+                setTimeout(() => {
+                    if (data.success) {
+                        setRecheckStep('save', 'done');
+                        setRecheckProgress(100);
+
+                        // 短暂展示100%后关闭遮罩
+                        setTimeout(() => {
+                            hideRecheckOverlay();
+                            renderCheckResults(data);
+                            const elapsed = Math.floor((Date.now() - recheckStartTime) / 1000);
+                            const vCount = data.violation_count || 0;
+                            const totalRules = data.total_rules || 31;
+                            let toastMsg = `检查完成（${elapsed}s），`;
+                            if (vCount === 0) {
+                                toastMsg += `所有${totalRules}条规则全部通过！`;
+                                showToast(toastMsg, 'success', 5000);
+                            } else {
+                                toastMsg += `${totalRules}条规则中发现 ${vCount} 处违规`;
+                                showToast(toastMsg, 'info', 5000);
+                            }
+                            if (!llmMerged) {
+                                showToast('提示：LLM内容质量评估未参与，请先在综合处理页执行“一键解析”', 'info', 7000);
+                            }
+                        }, 600);
+                    } else {
+                        setRecheckStep('save', 'error');
+                        setTimeout(() => {
+                            hideRecheckOverlay();
+                            showToast('检查失败：' + (data.error || '未知错误'), 'error', 6000);
+                        }, 800);
+                    }
+                }, 800);
+            })
+            .catch(error => {
+                console.error('[重新检查] API调用失败:', error);
+                // 标记当前活跃步骤为错误
+                document.querySelectorAll('#recheckSteps li.active').forEach(li => {
+                    li.classList.remove('active');
+                    li.classList.add('error');
+                    const icon = li.querySelector('.step-icon');
+                    icon.innerHTML = '<i class="bi bi-x"></i>';
+                });
+                setTimeout(() => {
+                    hideRecheckOverlay();
+                    showToast('API调用失败：' + error.message, 'error', 6000);
+                }, 1000);
+            });
+        }
+
+        // 渲染检查结果到表格
+        function renderCheckResults(data) {
+            const tableBody = document.getElementById('tableBody');
+            const violations = data.violations || [];
+            
+            // 更新报告时间
+            const reportTimeElement = document.getElementById('reportTime');
+            if (reportTimeElement) {
+                reportTimeElement.textContent = new Date().toLocaleString('zh-CN');
+            }
+            
+            // 更新统计信息
+            const totalRules = data.total_rules || 31;  // 31条规则: 28条正则/混合 (+3条LLM质量评估)
+            document.getElementById('totalRules').textContent = totalRules;
+            document.getElementById('violationCount').textContent = violations.length;
+            const passRate = violations.length === 0 ? 100 : Math.round((1 - violations.length / totalRules) * 100);
+            document.getElementById('passRate').textContent = passRate + '%';
+            
+            // 清空表格
+            tableBody.innerHTML = '';
+            
+            if (violations.length === 0) {
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('emptyState').style.display = 'none';
+            
+            // 严重程度配置
+            const severityConfig = {
+                'high': { icon: 'bi-exclamation-triangle-fill', color: '#f56565', class: 'severity-high', label: '高' },
+                'medium': { icon: 'bi-exclamation-circle-fill', color: '#ed8936', class: 'severity-medium', label: '中' },
+                'low': { icon: 'bi-info-circle-fill', color: '#4299e1', class: 'severity-low', label: '低' }
+            };
+            
+            // 渲染每个违规项
+            violations.forEach(violation => {
+                const severity = severityConfig[violation.severity] || severityConfig['medium'];
+                
+                const row = document.createElement('tr');
+                row.setAttribute('data-severity', violation.severity);
+                
+                row.innerHTML = `
+                    <td>
+                        <strong class="rule-name">${violation.rule_name}</strong><br>
+                        <span class="rule-severity ${severity.class}">[${severity.label}]</span>
+                    </td>
+                    <td>
+                        <div style="margin-bottom: 10px;">${violation.error_text || '未提供详细内容'}</div>
+                        <small style="color: #666;">${violation.location || '位置未知'}</small>
+                    </td>
+                    <td>${violation.suggestion || '请人工检查'}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 页面加载完成后自动加载数据库中的初筛结果
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('规则检查页面加载完成');
+            
+            // 获取URL参数中的file_id
+            const urlParams = new URLSearchParams(window.location.search);
+            const fileId = urlParams.get('file_id');
+            
+            if (fileId) {
+                console.log('检测到file_id参数:', fileId);
+                // 自动加载数据库中的缓存结果
+                const tableBody = document.getElementById('tableBody');
+                tableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 3rem;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">加载中...</span></div><div style="margin-top: 1rem;">正在加载初筛结果...</div></td></tr>`;
+                
+                // 调用API，不强制刷新（从数据库读取）
+                fetch('/api/preliminary-check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        file_id: fileId,
+                        force_refresh: false  // 页面加载时从数据库读取缓存结果
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderCheckResults(data);  // 直接传递data，不是data.data
+                    } else {
+                        tableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 2rem; color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> 加载失败：${data.error || data.message || '未知错误'}</td></tr>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('加载初筛结果失败:', error);
+                    tableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 2rem; color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> 加载失败：${error.message || '网络错误'}</td></tr>`;
+                });
+            } else {
+                console.log('未检测到file_id参数，显示默认提示');
+            }
+        });
+
+        // 【示例】从后端加载数据的函数（需要配合后端API）
+        function loadRuleCheckResults() {
+            // fetch('/api/rule-check-results')
+            //     .then(response => response.json())
+            //     .then(data => {
+            //         updateStatistics(data);
+            //         renderTable(data.violations);
+            //     });
+        }
+    </script>
+    {% include 'includes/header_right_js.html' %}
+</body>
+</html>

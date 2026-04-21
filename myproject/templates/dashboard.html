@@ -1,0 +1,2541 @@
+{% extends "base_ynex.html" %}
+
+{% block title %}文档处理中心 - 文档重点提取系统{% endblock %}
+
+{% block extra_css %}
+    <style>
+        /* YNEX 风格基础样式 - 移除灰色背景 */
+        .app-content {
+            background: transparent !important;
+        }
+        
+        /* 确保头部dropdown可以点击 */
+        .header-link.dropdown-toggle {
+            cursor: pointer !important;
+            pointer-events: auto !important;
+        }
+        
+        .dropdown-menu {
+            pointer-events: auto !important;
+        }
+        
+        .header-content-right {
+            pointer-events: auto !important;
+        }
+        
+        .header-element {
+            pointer-events: auto !important;
+        }
+        
+        .card {
+            border: 1px solid rgba(0,0,0,.125);
+            border-radius: 0.375rem;
+            background: #fff;
+        }
+        
+        .btn {
+            border-radius: 0.375rem;
+            font-weight: 500;
+        }
+        
+        .btn-primary {
+            background: #845adf;
+            border-color: #845adf;
+        }
+        
+        .btn-primary:hover {
+            background: #7848d1;
+            border-color: #7848d1;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            border-color: #28a745;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            border-color: #dc3545;
+        }
+        
+        .text-primary {
+            color: #845adf !important;
+        }
+
+        /* 卡片样式 - 与文档列表页面保持一致 */
+        .custom-card {
+            margin-bottom: 0;
+            height: calc(100vh - 120px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            padding: 0.5rem 1rem !important;
+            flex-shrink: 0;
+            min-height: 60px;
+        }
+
+        .card-body {
+            padding: 0.75rem 1rem !important;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 文档统计区域样式 */
+        .doc-count-section {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f1f3f4;
+            margin-bottom: 0.75rem !important;
+            flex-shrink: 0;
+        }
+        
+        /* 按钮区域不被压缩 */
+        .d-flex.gap-1.align-items-center {
+            flex-shrink: 0;
+        }
+
+        .doc-count {
+            background: #f8f9fa;
+            border: 0.5px solid #dee2e6;
+            padding: 0.25rem 0.6rem;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6c757d;
+            border-right: 0.5px solid #dee2e6;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .doc-count:last-child {
+            border-right: none;
+        }
+
+        .doc-count span {
+            color: #495057;
+            font-weight: 600;
+            margin-left: 0.25rem;
+        }
+
+        .doc-count-container {
+            display: flex;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 0.5px solid #dee2e6;
+            background: #fff;
+        }
+
+        .doc-count:hover {
+            border-color: #ced4da;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .files-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.15rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            background: #fff;
+            border-radius: 0.375rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            flex-shrink: 0;
+        }
+        
+        .files-stats {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .select-all-section {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .select-all-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #845adf;
+        }
+        
+        .select-all-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #495057;
+            cursor: pointer;
+            margin: 0;
+        }
+        
+        .files-stats h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .batch-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .batch-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 0.375rem;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        
+        .batch-btn:hover:not(:disabled) {
+            background: #5a6268;
+        }
+        
+        .batch-btn:disabled {
+            background: #adb5bd;
+            cursor: not-allowed;
+        }
+
+        .batch-btn:not(.danger-btn) {
+            background: #27ae60;
+        }
+
+        .batch-btn:not(.danger-btn):hover:not(:disabled) {
+            background: #229954;
+        }
+        
+        .batch-btn.danger-btn {
+            background: #dc3545;
+        }
+        
+        .batch-btn.danger-btn:hover:not(:disabled) {
+            background: #c82333;
+        }
+        
+        /* 响应式设计优化 */
+        @media (max-width: 768px) {
+            
+            .file-list-wrapper {
+                flex: 1;
+                overflow-y: auto;
+            }
+            
+            .upload-area-large {
+                padding: 2rem 1rem;
+                min-height: 200px;
+            }
+            
+            .upload-icon-large {
+                font-size: 3rem;
+            }
+            
+            .upload-text-large h3 {
+                font-size: 18px;
+            }
+            
+            .upload-text-large p {
+                font-size: 14px;
+            }
+            
+            .upload-btn-large {
+                padding: 10px 24px;
+                font-size: 14px;
+            }
+            
+            .upload-section-main {
+                padding: 1rem;
+            }
+        }
+        
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-height: 1000px; /* 临时测试：强制高度，确保会出现滚动 */
+        }
+        
+        .file-list-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: transparent;
+            border-radius: 0;
+            padding: 0;
+            padding-right: 0.25rem;
+        }
+        .file-progress {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 100%;
+        }
+        
+        .file-progress.hidden {
+            display: none;
+        }
+        
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            min-width: 100px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease;
+            width: 0%;
+            will-change: width;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 进度>60%时渐变为绿色 */
+        .progress-fill.progress-high {
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+        }
+        
+        /* 进度>85%时活力绿 */
+        .progress-fill.progress-finishing {
+            background: linear-gradient(90deg, #20c997 0%, #00e676 100%);
+        }
+        
+        /* 等待状态：灰色 */
+        .progress-fill.progress-waiting {
+            background: #adb5bd;
+        }
+        
+        /* 闪光效果：仅在活跃处理时显示 */
+        .progress-fill.active-processing::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+            animation: progressShine 1.8s infinite ease-in-out;
+        }
+        
+        @keyframes progressShine {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: 100%; }
+        }
+        
+        /* 进度条动画类 */
+        .progress-fill.smooth-update {
+            transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .progress-fill.instant-update {
+            transition: width 0.15s ease;
+        }
+        
+        /* 完成状态的进度条 */
+        .progress-fill.completed {
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+        }
+        
+        .progress-text {
+            font-size: 11px;
+            color: #6c757d;
+            min-width: 36px;
+            text-align: right;
+        }
+        
+        .processing-timer {
+            font-size: 10px;
+            color: #495057;
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .processing-timer.completed {
+            background: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        
+        /* 流程步骤提示 */
+        .process-step-indicator {
+            font-size: 10px;
+            color: #495057;
+            background: linear-gradient(135deg, #e3f2fd, #f8f9fa);
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid #e1f5fe;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            max-width: 360px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .process-step-indicator .step-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        
+        .process-step-indicator.completed .step-icon {
+            background: #28a745;
+            animation: none;
+        }
+        
+        /* 双椭圆并排容器 */
+        .dual-step-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: nowrap;
+        }
+        
+        .dual-step-container .process-step-indicator {
+            max-width: 220px;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 0.375rem;
+        }
+        
+
+        
+        .file-info h4 {
+            color: #333;
+            margin-bottom: 0.25rem;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .file-meta {
+            font-size: 12px;
+            color: #6c757d;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .processing-time {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 0.375rem;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .remove-btn {
+            background: #dc3545;
+            color: white;
+            padding: 6px 8px;
+            font-size: 12px;
+            min-width: auto;
+        }
+        
+        .remove-btn:hover {
+            background: #c82333;
+        }
+        
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .status-uploaded { background: #e3f2fd; color: #1976d2; }
+        .status-processing { background: #fff3e0; color: #f57c00; }
+        .status-completed { background: #e8f5e8; color: #2e7d32; }
+        .status-error { background: #ffebee; color: #c62828; }
+        .status-pending { background: #f3e5f5; color: #7b1fa2; }
+        .status-partial { background: #e1f5fe; color: #0277bd; }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 2rem;
+            font-size: 16px;
+            height: 100%;
+            min-height: 300px;
+        }
+        /* 状态指示器动画 */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+
+
+
+        .status-icon {
+            display: inline-block;
+            animation: statusBounce 2s ease-in-out infinite;
+        }
+        
+        @keyframes statusBounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        /* 滚动条美化 */
+        .file-list-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .file-list-wrapper::-webkit-scrollbar-track {
+            background: #f8f9fa;
+            border-radius: 3px;
+        }
+        
+        .file-list-wrapper::-webkit-scrollbar-thumb {
+            background: #dee2e6;
+            border-radius: 3px;
+        }
+        
+        .file-list-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #ced4da;
+        }
+        
+        /* 微妙的页面载入动画 */
+        .container > * {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        
+        .container > *:nth-child(1) { animation-delay: 0.1s; }
+        .container > *:nth-child(2) { animation-delay: 0.2s; }
+        .container > *:nth-child(3) { animation-delay: 0.3s; }
+        .container > *:nth-child(4) { animation-delay: 0.4s; }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 增强的玻璃拟态效果 */
+        .upload-section-main {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
+        }
+        
+        .upload-section-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: exclude;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        /* 管理员权限样式 */
+        .admin-only {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .admin-only.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+        
+        .admin-only.hidden {
+            display: none;
+        }
+        
+        /* 权限提示样式 */
+        .permission-tooltip {
+            position: relative;
+            cursor: help;
+        }
+        
+        .permission-tooltip:hover::after {
+            content: "需要管理员权限";
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+        
+        /* 新的文档卡片样式 - 从parsed_documents.html适配 */
+        .file-item {
+            padding: 0.75rem !important;
+            border-radius: 6px !important;
+            border: 1px solid #dee2e6;
+            background: #fff;
+            transition: all 0.15s ease-in-out;
+        }
+        
+        .file-item:hover {
+            border-color: #845adf;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        
+        .file-item h4 {
+            font-size: 14px !important;
+            margin-bottom: 0.25rem !important;
+            line-height: 1.3 !important;
+            font-weight: 500 !important;
+        }
+        
+        .file-meta .badge, 
+        .file-meta span:not(.status-badge) {
+            font-size: 11px !important;
+            padding: 0.25rem 0.5rem !important;
+            margin-right: 0.25rem;
+        }
+        
+        .file-meta .status-badge {
+            font-size: 11px !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+        
+        .file-meta .processing-time {
+            font-size: 11px !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+        
+        /* 复选框样式 */
+        .file-select-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #845adf;
+        }
+        
+        .file-select-checkbox:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+        <!-- Start::app-content -->
+                <!-- Flash消息 -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash-message" data-type="{{ category }}" data-message="{{ message }}" style="display: none;"></div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- 隐藏的文件输入框 - 标准模板只支持 PDF 文档 -->
+                <input type="file" id="fileInput" class="file-input" multiple accept=".pdf" style="display: none;">
+                
+                <!-- 文件列表区域 - 始终显示 -->
+                <div class="card custom-card" id="filesSection">
+                    <div class="card-header justify-content-between py-1">
+                        <div class="card-title mb-0">
+                            已上传文档
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between doc-count-section">
+                            <div class="doc-count-container">
+                                <div class="doc-count" id="docCountDisplay">总计：<span id="docCount">0</span></div>
+                                <div class="doc-count" id="selectedCountDisplay">已选择：<span id="selectedCount">0</span></div>
+                            </div>
+                            <div class="d-flex gap-1 align-items-center">
+                                <div class="select-all-section me-2">
+                                    <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox" onchange="toggleSelectAll()" checked>
+                                    <label for="selectAllCheckbox" class="select-all-label">全选</label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-primary" id="uploadMoreBtn" onclick="showUploadSection()">
+                                    <i class="bi bi-plus-circle me-1"></i>选择文件
+                                </button>
+                                <button type="button" class="btn btn-sm btn-success" id="oneClickBtn" onclick="startOneClickProcessDirect()" disabled>
+                                    <i class="bi bi-lightning me-1"></i>一键解析
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="clearAllBtn" onclick="clearAllFiles()" disabled>
+                                    <i class="bi bi-trash me-1"></i>全部清除
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="file-list-wrapper">
+                            <div class="file-list" id="fileList">
+                            <!-- 文件列表将在这里动态加载 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+    
+    <script>
+
+        // ===============================
+        // 全局变量和计时器管理
+        // ===============================
+        
+        // 独立计时器管理
+        const fileTimers = {}; // 存储每个文件的计时器信息 {fileId: {startTime, intervalId, isRunning}}
+        
+        // 启动文件计时器
+        function startFileTimer(fileId, existingStartTime = null) {
+            // 检查是否已有运行中的计时器 - 严格防止重复启动
+            if (fileTimers[fileId] && fileTimers[fileId].isRunning) {
+                console.log(`[计时器重复] 文件 ${fileId} 计时器已在运行，严格跳过重复启动`);
+                return false; // 返回false表示启动失败
+            }
+            
+            // 清理可能存在的旧计时器
+            if (fileTimers[fileId] && fileTimers[fileId].intervalId) {
+                clearInterval(fileTimers[fileId].intervalId);
+                console.log(`[计时器清理] 清理文件 ${fileId} 的旧计时器`);
+            }
+            
+            const startTime = existingStartTime || Date.now();
+            fileTimers[fileId] = {
+                startTime: startTime,
+                isRunning: true,
+                intervalId: setInterval(() => {
+                    updateFileTimer(fileId, startTime);
+                }, 1000)
+            };
+            
+            console.log(`[计时器启动] 文件 ${fileId} 计时器启动成功，开始时间: ${new Date(startTime).toLocaleTimeString()}`);
+            
+            // 立即更新一次显示
+            updateFileTimer(fileId, startTime);
+            
+            // 显示进度条和计时器
+            const progressElement = document.getElementById(`progress-${fileId}`);
+            if (progressElement) {
+                progressElement.classList.remove('hidden');
+            }
+        }
+        
+        // 更新文件计时器显示
+        function updateFileTimer(fileId, startTime) {
+            const timerElement = document.getElementById(`timer-${fileId}`);
+            if (timerElement && fileTimers[fileId] && fileTimers[fileId].isRunning) {
+                const elapsed = Date.now() - startTime;
+                const minutes = Math.floor(elapsed / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+        
+        // 停止文件计时器
+        function stopFileTimer(fileId) {
+            if (fileTimers[fileId]) {
+                if (fileTimers[fileId].intervalId) {
+                    clearInterval(fileTimers[fileId].intervalId);
+                }
+                fileTimers[fileId].isRunning = false;
+            }
+        }
+        
+        // 重置文件计时器和进度条
+        function resetFileProgress(fileId) {
+            stopFileTimer(fileId);
+            
+            // 重置进度条
+            const progressFill = document.getElementById(`progress-fill-${fileId}`);
+            const progressText = document.getElementById(`progress-text-${fileId}`);
+            const timerElement = document.getElementById(`timer-${fileId}`);
+            const progressElement = document.getElementById(`progress-${fileId}`);
+            
+            if (progressFill) progressFill.style.width = '0%';
+            if (progressText) progressText.textContent = '0%';
+            if (timerElement) timerElement.textContent = '00:00';
+            if (progressElement) progressElement.classList.add('hidden');
+            
+            // 清理计时器数据
+            delete fileTimers[fileId];
+        }
+        
+        // ===============================
+        // 原有的上传文件功能
+        // ===============================
+        
+        // 简单登出函数（无确认）
+        function simpleLogout() {
+            // 直接跳转到登出页面，无需确认
+            window.location.href = '/logout';
+        }
+        
+        // 登出函数（带确认）
+        function logout() {
+            if (confirm('确定要登出吗？')) {
+                // 显示登出中的提示
+                showAlert('info', '正在登出...');
+                
+                // 延迟跳转，让用户看到提示信息
+                setTimeout(() => {
+                    window.location.href = '/logout';
+                }, 500);
+            }
+        }
+        
+        // 全设备注销函数
+        function logoutAll() {
+            if (confirm('确定要在所有设备上注销登出吗？\n这将会终止您在所有设备上的登录会话。')) {
+                // 显示注销中的提示
+                showAlert('info', '正在执行全设备注销...');
+                
+                // 延迟跳转，让用户看到提示信息
+                setTimeout(() => {
+                    window.location.href = '/logout_all';
+                }, 500);
+            }
+        }
+        
+        // 文件上传功能
+        const fileInput = document.getElementById('fileInput');
+        
+        // 点击上传
+        fileInput.addEventListener('change', (e) => {
+            handleFileUpload(e.target.files);
+        });
+        
+        function handleFileUpload(files) {
+            // 显示上传信息
+            if (allFiles.length >= 10) {
+                showAlert('warning', '文件列表已达到上限（最多10个文件），请先清除一些文件后再上传');
+                return;
+            }
+            
+            // 验证文件类型和数量
+            const filesArray = Array.from(files).filter(file => {
+                const allowedTypes = ['application/pdf'];
+                if (!allowedTypes.includes(file.type)) {
+                    showAlert('danger', `文件 ${file.name} 格式不支持，仅支持PDF格式`);
+                    return false;
+                }
+                return true;
+            });
+            
+            if (filesArray.length === 0) return;
+            
+            const remainingSlots = 10 - allFiles.length;
+            const filesToUpload = filesArray.slice(0, remainingSlots);
+            
+            if (filesArray.length > remainingSlots) {
+                showAlert('info', `选择了${filesArray.length}个文件，由于10个文件上限限制，将只上传前${remainingSlots}个文件`);
+            }
+            
+            // 并发上传：最多3个文件同时上传
+            const MAX_CONCURRENT = 3;
+            let uploadingCount = 0;
+            let uploadedCount = 0;
+            const uploadQueue = [...filesToUpload];
+            
+            // 显示上传进度容器
+            const progressContainer = document.createElement('div');
+            progressContainer.id = 'uploadProgressContainer';
+            progressContainer.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;width:320px;max-height:500px;overflow-y:auto;';
+            document.body.appendChild(progressContainer);
+            
+            function uploadNext() {
+                if (uploadQueue.length === 0) {
+                    if (uploadingCount === 0) {
+                        // 所有文件上传完成
+                        setTimeout(() => {
+                            loadFileList();
+                            fileInput.value = '';
+                            if (allFiles.length > 0) updateViewMode(allFiles.length);
+                            const container = document.getElementById('uploadProgressContainer');
+                            if (container) container.remove();
+                        }, 1000);
+                    }
+                    return;
+                }
+                
+                if (uploadingCount >= MAX_CONCURRENT) return;
+                
+                const file = uploadQueue.shift();
+                uploadingCount++;
+                
+                // 创建单个文件的FormData
+                const formData = new FormData();
+                formData.append('files', file);
+                
+                // 创建进度条UI
+                const progressId = `progress-${Date.now()}-${Math.random()}`;
+                const progressDiv = document.createElement('div');
+                progressDiv.id = progressId;
+                progressDiv.style.cssText = `
+                    background:white;padding:12px;border-radius:8px;margin-bottom:8px;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.1);border-left:4px solid #4c2a85;
+                `;
+                progressDiv.innerHTML = `
+                    <div style="font-size:12px;font-weight:600;color:#2d1b4d;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        ${file.name}
+                    </div>
+                    <div style="width:100%;height:6px;background:#e9ecef;border-radius:3px;overflow:hidden;margin-bottom:4px;">
+                        <div id="${progressId}-bar" style="height:100%;background:#4c2a85;width:0%;transition:width .2s;"></div>
+                    </div>
+                    <div style="font-size:11px;color:#6c757d;">
+                        <span id="${progressId}-text">0 KB / ${(file.size/1024).toFixed(0)} KB</span>
+                    </div>
+                `;
+                progressContainer.appendChild(progressDiv);
+                
+                // 使用XMLHttpRequest以获得上传进度
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        document.getElementById(`${progressId}-bar`).style.width = percent + '%';
+                        document.getElementById(`${progressId}-text`).textContent = 
+                            `${(e.loaded/1024).toFixed(0)} KB / ${(e.total/1024).toFixed(0)} KB`;
+                    }
+                });
+                
+                xhr.addEventListener('load', () => {
+                    uploadingCount--;
+                    uploadedCount++;
+                    
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            document.getElementById(`${progressId}-bar`).style.background = '#10b981';
+                            document.getElementById(`${progressId}`).style.borderLeftColor = '#10b981';
+                        } else {
+                            document.getElementById(`${progressId}-bar`).style.background = '#ef4444';
+                            document.getElementById(`${progressId}`).style.borderLeftColor = '#ef4444';
+                            showAlert('danger', `文件 ${file.name} 上传失败: ${response.error}`);
+                        }
+                    } else {
+                        document.getElementById(`${progressId}-bar`).style.background = '#ef4444';
+                        document.getElementById(`${progressId}`).style.borderLeftColor = '#ef4444';
+                        showAlert('danger', `文件 ${file.name} 上传失败`);
+                    }
+                    
+                    uploadNext();
+                });
+                
+                xhr.addEventListener('error', () => {
+                    uploadingCount--;
+                    document.getElementById(`${progressId}-bar`).style.background = '#ef4444';
+                    document.getElementById(`${progressId}`).style.borderLeftColor = '#ef4444';
+                    showAlert('danger', `文件 ${file.name} 上传出错`);
+                    uploadNext();
+                });
+                
+                xhr.open('POST', '/upload');
+                xhr.setRequestHeader('X-CSRFToken', document.querySelector('meta[name="csrf-token"]').content);
+                xhr.send(formData);
+                
+                // 继续处理队列中的下一个文件
+                uploadNext();
+            }
+            
+            // 启动上传队列
+            uploadNext();
+        }
+
+
+        // 加载文件列表
+        // 全局变量存储当前文件列表和任务状态
+        let allFiles = [];
+
+        function loadFileList() {
+            fetch('/api/files')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 标准模板只显示 PDF 文档
+                    allFiles = (data.files || []).filter(file => {
+                        const fileName = (file.original_name || '').toLowerCase();
+                        return fileName.endsWith('.pdf');
+                    });
+                    renderFileList(allFiles); // 直接渲染所有文件
+                    updateBatchConvertButton(); // 更新批量转换按钮状态
+                    // 根据文件数量设置正确的视图模式
+                    updateViewMode(allFiles.length);
+                } else {
+                    console.error('获取文件列表失败:', data.error);
+                    // 即使失败也要设置正确的视图（空文件状态）
+                    updateViewMode(0);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading file list:', error);
+                // 出错时也设置为空文件状态
+                updateViewMode(0);
+            });
+        }
+
+        // 更新批量清除按钮状态
+        function updateBatchConvertButton() {
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            const uploadMoreBtn = document.getElementById('uploadMoreBtn');
+            
+            if (!clearAllBtn) return;
+            
+            // 更新全部清除按钮
+            if (allFiles.length > 0) {
+                clearAllBtn.disabled = false;
+                clearAllBtn.innerHTML = `<i class="bi bi-trash me-1"></i>全部清除`;
+                clearAllBtn.title = `清除 ${allFiles.length} 个文件`;
+            } else {
+                clearAllBtn.disabled = true;
+                clearAllBtn.innerHTML = '<i class="bi bi-trash me-1"></i>全部清除';
+                clearAllBtn.title = '没有可清除的文件';
+            }
+            
+            // 更新继续上传按钮状态 - 达到10个文件限制时禁用
+            if (uploadMoreBtn) {
+                if (allFiles.length >= 10) {
+                    uploadMoreBtn.disabled = true;
+                    uploadMoreBtn.classList.add('disabled');
+                    uploadMoreBtn.title = '文件列表已达到上限（最多10个文件），请先清除一些文件';
+                    uploadMoreBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>已达上限';
+                } else {
+                    uploadMoreBtn.disabled = false;
+                    uploadMoreBtn.classList.remove('disabled');
+                    uploadMoreBtn.title = `选择文件上传（还可上传${10 - allFiles.length}个）`;
+                    uploadMoreBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>选择文件';
+                }
+            }
+        }
+
+        // 从备注信息中提取处理时间
+        function extractProcessingTime(remarks) {
+            if (!remarks) return null;
+            // 支持两种格式：1分30秒 或 45秒
+            const match = remarks.match(/处理时间:\s*(\d+分\d+秒|\d+秒)/);
+            return match ? match[1] : null;
+        }
+
+        // 渲染文件列表 - 增强版本，添加序号和视图切换功能
+        function renderFileList(files) {
+            const fileListContainer = document.getElementById('fileList');
+            
+            // 更新文档数量显示
+            const docCountElement = document.getElementById('docCount');
+            if (docCountElement) {
+                docCountElement.textContent = files.length;
+            }
+            
+            // 根据文件数量切换显示模式
+            updateViewMode(files.length);
+            
+            if (files.length === 0) {
+                fileListContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div style="margin-bottom: 1rem;">
+                            <i class="bi bi-files" style="font-size: 3rem; color: #845adf; opacity: 0.3;"></i>
+                        </div>
+                        <div style="font-size: 18px; font-weight: 500; margin-bottom: 0.5rem; color: #495057;">
+                            还没有上传任何文档
+                        </div>
+                        <div style="color: #6c757d; font-size: 14px;">
+                            请点击右上角"选择文件"按钮上传文档（支持PDF格式）
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            fileListContainer.innerHTML = files.map((file, index) => {
+                // 检查文件是否可以被选择进行处理（只有uploaded或pending状态的文件可以被处理）
+                const canProcess = true; // 所有文件都可以参与一键解析，包括错误文件和已完成文件
+                
+                // 状态显示
+                const statusBadge = `<span class="status-badge status-${file.status}">${getStatusText(file.status)}</span>`;
+                
+                // 从备注中提取处理时间
+                const processingTime = extractProcessingTime(file.remarks);
+                
+                return `
+                <div class="file-item" data-file-id="${file.file_id}">
+                    <div class="d-flex align-items-center">
+                        <div class="me-2">
+                            <input type="checkbox" 
+                                   id="file-checkbox-${file.file_id}" 
+                                   class="form-check-input file-select-checkbox" 
+                                   ${canProcess ? 'checked' : 'disabled'} 
+                                   onchange="updateProcessButtonState()">
+                        </div>
+                        <div class="me-2">
+                            <div class="avatar avatar-sm avatar-rounded bg-primary-transparent">
+                                <span class="fs-12 fw-semibold">${index + 1}</span>
+                            </div>
+                        </div>
+                        <div class="flex-fill">
+                            <h4 class="mb-1 fw-semibold">${escapeHtml(file.original_name)}</h4>
+                            <div class="file-meta d-flex flex-wrap gap-1">
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-calendar3 me-1"></i>${formatChineseTime(file.upload_time)}
+                                </span>
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-hdd me-1"></i>${formatFileSize(file.file_size)}
+                                </span>
+                                ${statusBadge}
+                                ${processingTime ? `<span class="badge bg-success-transparent text-success processing-time" title="文档处理耗时"><i class="bi bi-clock me-1"></i>${processingTime}</span>` : ''}
+                                ${file.remarks && file.remarks.includes('|') ? `<span class="badge bg-secondary-transparent text-secondary" title="备注信息"><i class="bi bi-info-circle me-1"></i>详情</span>` : ''}
+                            </div>
+                            <div class="file-progress hidden mt-2" id="progress-${file.file_id}">
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="progress-fill-${file.file_id}"></div>
+                                    </div>
+                                    <div class="progress-text" id="progress-text-${file.file_id}">0%</div>
+                                </div>
+                                <div class="processing-timer d-flex align-items-center mt-1">
+                                    <i class="bi bi-clock me-1"></i>
+                                    <span id="timer-${file.file_id}">00:00</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="file-actions ms-2 d-flex gap-1">
+                            ${renderFileActions(file)}
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            
+            // 更新选择状态
+            updateSelectAllState();
+            updateProcessButtonState();
+        }
+
+        // 全选/取消全选功能
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const fileCheckboxes = document.querySelectorAll('.file-select-checkbox:not(:disabled)');
+            
+            fileCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+            
+            updateProcessButtonState();
+        }
+        
+        // 更新全选复选框状态
+        function updateSelectAllState() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const fileCheckboxes = document.querySelectorAll('.file-select-checkbox:not(:disabled)');
+            const checkedCheckboxes = document.querySelectorAll('.file-select-checkbox:not(:disabled):checked');
+            
+            if (fileCheckboxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.disabled = true;
+            } else if (checkedCheckboxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.disabled = false;
+            } else if (checkedCheckboxes.length === fileCheckboxes.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.disabled = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+                selectAllCheckbox.disabled = false;
+            }
+        }
+        
+        // 更新处理按钮状态和选择计数
+        function updateProcessButtonState() {
+            const oneClickBtn = document.getElementById('oneClickBtn');
+            const selectedCheckboxes = document.querySelectorAll('.file-select-checkbox:checked:not(:disabled)');
+            const selectedCountElement = document.getElementById('selectedCount');
+            
+            // 更新选择计数
+            if (selectedCountElement) {
+                selectedCountElement.textContent = selectedCheckboxes.length;
+            }
+            
+            // 更新一键解析按钮状态
+            if (oneClickBtn) {
+                if (selectedCheckboxes.length > 0) {
+                    oneClickBtn.disabled = false;
+                    oneClickBtn.title = `开始解析选中的 ${selectedCheckboxes.length} 个文件`;
+                } else {
+                    oneClickBtn.disabled = true;
+                    oneClickBtn.title = '请先选择要处理的文件';
+                }
+            }
+            
+            // 更新全选状态
+            updateSelectAllState();
+        }
+        
+        // 更新视图模式 - 文件列表始终显示
+        function updateViewMode(fileCount) {
+            const filesSection = document.getElementById('filesSection');
+            
+            // 文件列表始终显示
+            if (filesSection) {
+                filesSection.style.display = 'block';
+            }
+        }
+        
+        // 直接选择文件 - 选择文件按钮功能
+        function showUploadSection() {
+            // 检查是否已达到文件上限
+            if (allFiles.length >= 10) {
+                showAlert('warning', '文件列表已达到上限（最多10个文件），请先清除一些文件后再上传');
+                return;
+            }
+            
+            // 直接触发文件选择对话框
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                fileInput.click();
+            }
+        }
+        
+        // 渲染文件操作按钮
+        function renderFileActions(file) {
+            let actions = [];
+            
+            // 清除按钮（对所有文件都显示）
+            actions.push(`
+                <button class="action-btn remove-btn" onclick="removeFile('${file.file_id}')" title="清除文件">
+                    <i class="bi bi-trash me-1"></i>清除
+                </button>
+            `);
+            
+            return actions.join('');
+        }
+        
+        // 转义HTML字符
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 格式化时间为中文格式
+        function formatChineseTime(timeString) {
+            if (!timeString) return '';
+            
+            // 直接解析GMT格式字符串 "Sun, 26 Oct 2025 15:19:13 GMT" 转为 "2025年10月26日 15:19"
+            try {
+                // 匹配GMT格式: Day, DD Mon YYYY HH:MM:SS GMT
+                const gmtMatch = timeString.match(/^[A-Za-z]{3},\s+(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s+GMT$/);
+                if (gmtMatch) {
+                    const monthMap = {
+                        'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+                        'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+                        'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+                    };
+                    const day = gmtMatch[1].padStart(2, '0');
+                    const month = monthMap[gmtMatch[2]];
+                    const year = gmtMatch[3];
+                    const hour = gmtMatch[4];
+                    const minute = gmtMatch[5];
+                    return `${year}年${month}月${day}日 ${hour}:${minute}`;
+                }
+                
+                // 匹配标准格式: YYYY-MM-DD HH:MM:SS
+                const stdMatch = timeString.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+                if (stdMatch) {
+                    const [_, year, month, day, hour, minute] = stdMatch;
+                    return `${year}年${month}月${day}日 ${hour}:${minute}`;
+                }
+                
+                // 如果格式不匹配，返回原始字符串
+                return timeString;
+            } catch (error) {
+                console.error('时间格式化错误:', error);
+                return timeString;
+            }
+        }
+
+        // 获取状态文本
+        function getStatusText(status) {
+            const statusMap = {
+                'uploaded': '未解析',
+                'processing': '处理中',
+                'completed': '已完成',
+                'error': '解析错误',
+                'pending': '待处理',
+                'partial': '部分完成'
+            };
+            return statusMap[status] || status;
+        }
+
+
+
+
+
+        
+        // 清除单个文件
+        function removeFile(fileId) {
+            const file = allFiles.find(f => f.file_id === fileId);
+            if (!file) {
+                showAlert('danger', '文件不存在');
+                return;
+            }
+            
+            const confirmMsg = `确定要清除文件 "${file.original_name}" 吗？\n\n注意：这将删除文件记录和相关的处理结果，但不会删除原始上传的文件。`;
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+            
+            fetch(`/api/files/${fileId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadFileList(); // 刷新文件列表
+                } else {
+                    showAlert('danger', '清除失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', '清除过程中发生错误');
+            });
+        }
+        
+        // 全部清除文件
+        function clearAllFiles() {
+            if (allFiles.length === 0) {
+                showAlert('warning', '没有可清除的文件');
+                return;
+            }
+            
+            const confirmMsg = `确定要清除全部 ${allFiles.length} 个文件吗？\n\n注意：这将删除所有文件记录和相关的处理结果，但不会删除原始上传的文件。`;
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+            
+            // 🚀 立即停止所有任务轮询和状态检查
+            console.log('[文件清除] 立即停止所有任务轮询');
+            clearTaskState(); // 清除任务状态
+            
+            // 停止所有文件计时器
+            for (const fileId in fileTimers) {
+                stopFileTimer(fileId);
+            }
+            
+            // 清空完成文件记录
+            if (window.completedFiles) {
+                window.completedFiles.clear();
+            }
+            
+            // 禁用按钮
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            const originalText = clearAllBtn.innerHTML;
+            clearAllBtn.disabled = true;
+            clearAllBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>清除中...';
+            
+            fetch('/api/files/clear-all?type=pdf', {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('[PDF文件清除] 清除成功，中断任务:', data.interrupted_tasks);
+                    loadFileList(); // 刷新文件列表
+                    showAlert('success', `清除成功！${data.message}`);
+                } else {
+                    showAlert('danger', '清除失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', '清除过程中发生错误');
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                clearAllBtn.disabled = false;
+                clearAllBtn.innerHTML = originalText;
+            });
+        }
+        
+        // 页面加载时初始化配置
+        document.addEventListener('DOMContentLoaded', function() {
+            // 记录页面加载时间，用于严格的恢复时间窗口检查
+            window.pageLoadTime = Date.now();
+            console.log(`[页面加载] 记录加载时间: ${new Date(window.pageLoadTime).toLocaleTimeString()}`);
+            
+            // 给欢迎文字添加消失效果，2秒后消失
+            const welcomeSpan = document.querySelector('.user-info span');
+            if (welcomeSpan) {
+                welcomeSpan.classList.add('cube-flip');
+                // 2秒后完全隐藏文字
+                setTimeout(() => {
+                    welcomeSpan.style.display = 'none';
+                }, 2000);
+            }
+            
+            // 添加点击空白区域的事件监听器
+            setupClickOutsideHandler();
+            
+            loadFileList(); // 加载文件列表
+            
+            // 恢复正在进行的任务进度 - 仅在页面刷新后5秒内
+            setTimeout(() => {
+                updateAllDocumentProgress(true); // 传入true表示这是恢复调用
+                // 设置智能轮询 - 折中优化方案
+                let updateInterval = 6000; // 默认6秒
+                let consecutiveNoChange = 0;
+                let isPageVisible = true;
+                
+                // 页面可见性检测
+                document.addEventListener('visibilitychange', () => {
+                    isPageVisible = !document.hidden;
+                    console.log('[可见性] 页面可见性变化:', isPageVisible ? '可见' : '隐藏');
+                });
+                
+                const progressInterval = setInterval(() => {
+                    // 页面不可见时停止轮询
+                    if (!isPageVisible) {
+                        console.log('[轮询跳过] 页面不可见，跳过轮询');
+                        return;
+                    }
+                    
+                    const hasActiveProgress = Object.keys(fileTimers).some(fileId => 
+                        fileTimers[fileId] && fileTimers[fileId].isRunning
+                    );
+                    
+                    if (hasActiveProgress) {
+                        // 有活跃进度时使用较高频率
+                        updateInterval = 1000; // 1秒（实时响应进度更新）
+                        consecutiveNoChange = 0;
+                        console.log('[轮询] 检测到活跃任务，使用1秒间隔');
+                    } else {
+                        // 没有活跃进度时降低频率
+                        consecutiveNoChange++;
+                        if (consecutiveNoChange > 5) {
+                            updateInterval = 15000; // 15秒
+                            console.log('[轮询] 无活跃任务超过5次，使用15秒间隔');
+                        } else {
+                            updateInterval = 5000; // 5秒
+                            console.log('[轮询] 无活跃任务，使用5秒间隔');
+                        }
+                    }
+                    
+                    updateAllDocumentProgress(false); // 轮询调用，不应恢复
+                }, 2000); // 基础检查间隔2秒，快速响应任务变化
+                
+                // 将间隔ID保存到全局变量，便于后续清理
+                window.progressUpdateInterval = progressInterval;
+            }, 1000);
+        });
+        
+        // 设置点击空白区域的处理函数
+        function setupClickOutsideHandler() {
+            // 由于移除了上传区域，此函数不再需要
+            // 保留空函数以避免调用错误
+        }
+        
+        // ==================== 一键解析功能实现 ====================
+        
+        // 任务状态管理
+        let currentTaskId = null;
+        let pollInterval = null;
+
+        // 一键解析功能（无弹窗版本）
+        function startOneClickProcessDirect() {
+            // 获取选中的文件ID
+            const selectedCheckboxes = document.querySelectorAll('.file-select-checkbox:checked:not(:disabled)');
+            const selectedFileIds = Array.from(selectedCheckboxes).map(checkbox => {
+                return checkbox.id.replace('file-checkbox-', '');
+            });
+            
+            if (selectedFileIds.length === 0) {
+                showAlert('warning', '请先选择要处理的文件');
+                return;
+            }
+            
+            // 调用后端API开始处理选中的文件（设置1小时超时）
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3600000); // 1小时超时 (60 * 60 * 1000)
+            
+            fetch('/api/one-click-process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    selected_file_ids: selectedFileIds
+                }),
+                signal: controller.signal
+            })
+            .then(response => {
+                clearTimeout(timeoutId);
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // 保存任务状态到localStorage（用于页面刷新后恢复）
+                    saveTaskState(data.task_id, 'running');
+                    
+                    // ⏳ 任务已创建，等待轮询进度更新
+                    // 显示容器但隐藏进度条，显示"正在等待"
+                    if (data.file_ids && data.file_ids.length > 0) {
+                        data.file_ids.forEach(fileId => {
+                            const progressContainer = document.getElementById(`progress-${fileId}`);
+                            const progressBarContainer = progressContainer?.querySelector('.progress-container');
+                            const timerElement = document.getElementById(`timer-${fileId}`);
+                            
+                            if (progressContainer) {
+                                // 显示容器
+                                progressContainer.classList.remove('hidden');
+                                // 隐藏进度条
+                                if (progressBarContainer) {
+                                    progressBarContainer.classList.add('hidden');
+                                }
+                                // 显示"正在等待"
+                                if (timerElement) {
+                                    timerElement.textContent = '正在等待';
+                                    timerElement.style.color = '#6c757d';
+                                    timerElement.style.fontWeight = 'normal';
+                                }
+                            }
+                        });
+                    }
+                    
+                    // 开始轮询进度（但不显示弹窗）
+                    pollOneClickProgressSilent(data.task_id);
+                    
+                    showAlert('success', `开始处理 ${selectedFileIds.length} 个文件`);
+                } else {
+                    showAlert('danger', `启动失败: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    showAlert('danger', '请求超时（10分钟），请检查网络连接或联系管理员');
+                } else {
+                    showAlert('danger', `网络错误: ${error.message}`);
+                }
+            });
+        }
+
+        // 静默轮询一键解析进度（不显示弹窗）
+        function pollOneClickProgressSilent(taskId) {
+            let pollCount = 0;
+            const maxPolls = 14400; // 最多轮询14400次 (4小时，1秒间隔)
+            let timeoutAlertShown = false; // 防止重复提示
+            
+            // 保存轮询间隔到全局变量
+            pollInterval = setInterval(() => {
+                pollCount++;
+                
+                // 页面不可见时跳过轮询
+                if (document.hidden) {
+                    console.log('[一键轮询跳过] 页面不可见，跳过一键处理轮询');
+                    return;
+                }
+                
+                // 超时检查 - 4小时后停止（只提示一次）
+                if (pollCount > maxPolls && !timeoutAlertShown) {
+                    clearInterval(pollInterval);
+                    clearTaskState(); // 清除超时任务状态
+                    showAlert('warning', '⏰ 处理时间超过4小时，已停止监控。文档可能仍在后台处理，请稍后手动刷新检查状态');
+                    timeoutAlertShown = true;
+                    return;
+                }
+                
+                fetch(`/api/one-click-progress/${taskId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const progress = data.progress;
+                        
+                        // 更新各个文档的进度条
+                        updateAllDocumentProgress(false); // 一键处理轮询调用，不应恢复
+                        
+                        if (progress.status === 'completed') {
+                            clearInterval(pollInterval);
+                            clearTaskState(); // 清除任务状态
+                            
+                            // 检查所有文档是否真的都已完成
+                            checkTaskCompletion();
+                        } else if (progress.status === 'failed') {
+                            clearInterval(pollInterval);
+                            clearTaskState(); // 清除任务状态
+                            showAlert('danger', `处理失败: ${progress.error}`);
+                        } else if (progress.errors && progress.errors.length > 0) {
+                            // 处理部分文件失败的情况
+                            console.log('检测到失败文件:', progress.errors);
+                            
+                            // 解析失败文件信息并更新其状态
+                            progress.errors.forEach(errorMsg => {
+                                // 尝试从错误消息中提取文件名
+                                // 错误消息格式通常是 "filename: error description"
+                                const colonIndex = errorMsg.indexOf(':');
+                                if (colonIndex > 0) {
+                                    const filename = errorMsg.substring(0, colonIndex).trim();
+                                    const errorDesc = errorMsg.substring(colonIndex + 1).trim();
+                                    
+                                    // 根据文件名找到对应的文件ID
+                                    const allFiles = getAllCurrentFiles(); // 需要实现这个函数
+                                    const failedFile = allFiles.find(file => 
+                                        file.original_name === filename || 
+                                        file.original_name.includes(filename) ||
+                                        filename.includes(file.original_name.substring(0, 30))
+                                    );
+                                    
+                                    if (failedFile) {
+                                        // 更新失败文件的进度条状态
+                                        updateDocumentProgress(failedFile.file_id, 0, `错误: ${errorDesc}`);
+                                        
+                                        // 短暂显示后隐藏进度条
+                                        setTimeout(() => {
+                                            const progressContainer = document.getElementById(`progress-${failedFile.file_id}`);
+                                            if (progressContainer) {
+                                                progressContainer.classList.add('hidden');
+                                            }
+                                        }, 5000); // 显示5秒让用户看清楚
+                                        
+                                        // 更新文件状态为错误
+                                        updateDocumentStatus(failedFile.file_id, 'error');
+                                    }
+                                }
+                            });
+                            
+                            // 显示总体警告信息
+                            showAlert('warning', `部分文件处理出现问题: ${progress.errors.length} 个文件需要检查。详情请查看各文件的状态显示。`);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.warn('轮询进度失败:', error);
+                    // 网络错误不中断轮询，只记录日志
+                });
+            }, 1000); // 每1秒轮询一次，确保能捕捉到细粒度进度更新
+
+            // 4小时后停止轮询（只提示一次）
+            let timeoutAlertShown2 = false;
+            setTimeout(() => {
+                if (!timeoutAlertShown2) {
+                    clearInterval(pollInterval);
+                    showAlert('info', '⏰ 处理监控已超时停止，请手动检查文档状态');
+                    timeoutAlertShown2 = true;
+                }
+            }, 4 * 60 * 60 * 1000);
+        }
+
+        // 关闭一键解析对话框
+        function closeOneClickDialog() {
+            const dialog = document.getElementById('oneClickApiDialog');
+            if (dialog) {
+                dialog.remove();
+            }
+        }
+
+        // 显示错误信息
+        function showError(title, message) {
+            showAlert('danger', `${title}: ${message}`);
+        }
+
+        // 隐藏错误信息
+        function dismissError() {
+            // 简化版本，不需要专门的错误对话框
+        }
+
+        // 重试当前步骤
+        function retryCurrentStep() {
+            dismissError();
+            // 简化版本，直接重新开始一键解析
+            startOneClickProcessDirect();
+        }
+
+        // 取消任务
+        function cancelCurrentTask() {
+            if (currentTaskId) {
+                // 停止轮询
+                clearTaskState();
+                
+                // 尝试取消后端任务（如果API支持）
+                fetch(`/api/cancel-one-click-task/${currentTaskId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    // 任务已取消，无需显示提示
+                })
+                .catch(error => {
+                    console.error('取消任务失败:', error);
+                });
+                
+                // 关闭对话框
+                closeOneClickDialog();
+            }
+        }
+
+        // 保存任务状态到localStorage
+        function saveTaskState(taskId, status) {
+            const taskState = {
+                taskId: taskId,
+                status: status,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('oneClickTaskState', JSON.stringify(taskState));
+            currentTaskId = taskId;
+        }
+
+        // 从localStorage恢复任务状态
+        function restoreTaskState() {
+            try {
+                const saved = localStorage.getItem('oneClickTaskState');
+                if (saved) {
+                    const taskState = JSON.parse(saved);
+                    // 检查任务是否在24小时内
+                    if (Date.now() - taskState.timestamp < 24 * 60 * 60 * 1000) {
+                        currentTaskId = taskState.taskId;
+                        return taskState;
+                    } else {
+                        // 清除过期的任务状态
+                        localStorage.removeItem('oneClickTaskState');
+                    }
+                }
+            } catch (error) {
+                console.error('恢复任务状态失败:', error);
+                localStorage.removeItem('oneClickTaskState');
+            }
+            return null;
+        }
+
+        // 清除任务状态
+        function clearTaskState() {
+            localStorage.removeItem('oneClickTaskState');
+            currentTaskId = null;
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        // 获取当前任务信息
+        function getCurrentTask() {
+            const saved = restoreTaskState();
+            return {
+                taskId: currentTaskId,
+                status: saved ? saved.status : null,
+                timestamp: saved ? saved.timestamp : null
+            };
+        }
+
+        // ==================== 文档进度管理功能 ====================
+        
+        // 获取当前所有文件列表（用于失败文件匹配）
+        function getAllCurrentFiles() {
+            // 使用已有的全局变量 allFiles
+            return allFiles || [];
+        }
+        
+        // 显示文档进度条
+        function showDocumentProgress(fileId, initialProgress = 0, existingStartTime = null) {
+            const progressContainer = document.getElementById(`progress-${fileId}`);
+            const progressBarContainer = progressContainer?.querySelector('.progress-container');
+            const timerElement = document.getElementById(`timer-${fileId}`);
+            
+            if (progressContainer) {
+                // 确保进度值是有效数字
+                const progress = Math.max(0, Math.min(100, parseInt(initialProgress) || 0));
+                
+                // 根据是否有开始时间决定显示逻辑
+                if (existingStartTime) {
+                    // ✅ 任务已开始执行：显示进度条和计时器
+                    if (progressBarContainer) {
+                        progressBarContainer.classList.remove('hidden');
+                    }
+                    updateDocumentProgressWithoutTimer(fileId, progress, '🚀 准备开始处理...');
+                    console.log(`[进度显示] 文件 ${fileId} 显示进度条并从指定时间启动计时器，进度: ${progress}%`);
+                    startFileTimer(fileId, existingStartTime);
+                } else {
+                    // ⏳ 任务等待中：隐藏进度条，显示"正在等待"
+                    if (progressBarContainer) {
+                        progressBarContainer.classList.add('hidden');
+                    }
+                    if (timerElement) {
+                        timerElement.textContent = '正在等待';
+                        timerElement.style.color = '#6c757d';
+                        timerElement.style.fontWeight = 'normal';
+                    }
+                    console.log(`[进度显示] 文件 ${fileId} 任务等待中，隐藏进度条，显示"正在等待"`);
+                }
+            }
+        }
+        
+        // 更新文档进度（不自动启动计时器版本）
+        function updateDocumentProgressWithoutTimer(fileId, progress, statusText = '') {
+            // 确保进度值是有效数字
+            const validProgress = Math.max(0, Math.min(100, parseInt(progress) || 0));
+            
+            // 获取进度条元素
+            const progressFill = document.getElementById(`progress-fill-${fileId}`);
+            const progressText = document.getElementById(`progress-text-${fileId}`);
+            
+            if (!progressFill || !progressText) return;
+            
+            // 获取当前进度（从DOM读取实际宽度）
+            const currentWidthStr = progressFill.style.width || '0%';
+            const currentProgress = parseInt(currentWidthStr.replace('%', '')) || 0;
+            
+            // 防止进度倒退（除非是重置到0）
+            if (validProgress < currentProgress && validProgress !== 0) {
+                console.log(`[进度保护] 文件 ${fileId} 进度从 ${currentProgress}% 尝试倒退到 ${validProgress}%，已忽略`);
+                return;
+            }
+            
+            // 更新最后进度值
+            lastProgressValues[fileId] = validProgress;
+            
+            // 如果进度达到100%，停止计时器
+            if (validProgress >= 100) {
+                stopFileTimer(fileId);
+            }
+            
+            // 直接更新进度条和文本，不管理计时器
+            progressFill.style.width = `${validProgress}%`;
+            
+            // 根据进度值动态切换颜色类
+            progressFill.classList.remove('progress-waiting', 'progress-high', 'progress-finishing', 'active-processing', 'completed');
+            if (validProgress >= 100) {
+                progressFill.classList.add('completed');
+            } else if (validProgress >= 85) {
+                progressFill.classList.add('progress-finishing', 'active-processing');
+            } else if (validProgress >= 60) {
+                progressFill.classList.add('progress-high', 'active-processing');
+            } else if (validProgress > 0) {
+                progressFill.classList.add('active-processing');
+            } else {
+                progressFill.classList.add('progress-waiting');
+            }
+            
+            // 更新文本内容
+            if (statusText && statusText.trim()) {
+                if (statusText.includes('|||')) {
+                    const parts = statusText.split('|||').map(s => s.trim()).filter(s => s);
+                    if (parts.length >= 2) {
+                        const step1 = getSimplifiedProcessStep(parts[0], validProgress);
+                        const step2 = getSimplifiedProcessStep(parts[1], validProgress);
+                        const isCompleted = validProgress >= 100;
+                        progressText.innerHTML = `
+                            <div class="dual-step-container">
+                                <div class="process-step-indicator${isCompleted ? ' completed' : ''}">
+                                    <span class="step-icon"></span>
+                                    <span class="step-text">${validProgress}% - ${step1}</span>
+                                </div>
+                                <div class="process-step-indicator${isCompleted ? ' completed' : ''}">
+                                    <span class="step-icon"></span>
+                                    <span class="step-text">${step2}</span>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        const simplifiedStep = getSimplifiedProcessStep(parts[0] || statusText, validProgress);
+                        progressText.innerHTML = `
+                            <div class="process-step-indicator${validProgress >= 100 ? ' completed' : ''}">
+                                <span class="step-icon"></span>
+                                <span class="step-text">${validProgress}% - ${simplifiedStep}</span>
+                            </div>
+                        `;
+                    }
+                } else {
+                    const simplifiedStep = getSimplifiedProcessStep(statusText, validProgress);
+                    progressText.innerHTML = `
+                        <div class="process-step-indicator${validProgress >= 100 ? ' completed' : ''}">
+                            <span class="step-icon"></span>
+                            <span>${validProgress}% - ${simplifiedStep}</span>
+                        </div>
+                    `;
+                }
+            } else {
+                progressText.textContent = `${validProgress}%`;
+            }
+        }
+        
+        // 更新文档进度
+        // 进度更新防抖动机制 - 优化版本
+        const progressUpdateTimers = {};
+        const lastProgressValues = {};
+        
+        function updateDocumentProgress(fileId, progress, statusText = '') {
+            // 确保进度值是有效数字
+            const validProgress = Math.max(0, Math.min(100, parseInt(progress) || 0));
+            
+            // 检查是否是有意义的进度变化
+            const lastProgress = lastProgressValues[fileId] || 0;
+            const progressDiff = Math.abs(validProgress - lastProgress);
+            
+            // 🆕 放宽防抖条件：只对极小变化（<1%）且在中间范围才防抖
+            if (progressDiff < 1 && validProgress > 5 && validProgress < 95) {
+                // 清除之前的延迟更新
+                if (progressUpdateTimers[fileId]) {
+                    clearTimeout(progressUpdateTimers[fileId]);
+                }
+                
+                // 设置新的延迟更新（缩短到100ms）
+                progressUpdateTimers[fileId] = setTimeout(() => {
+                    performProgressUpdate(fileId, validProgress, statusText);
+                    delete progressUpdateTimers[fileId];
+                }, 100); // 100ms防抖动（从200ms缩短）
+                return;
+            }
+            
+            // 立即更新重要进度变化
+            performProgressUpdate(fileId, validProgress, statusText);
+        }
+        
+        function performProgressUpdate(fileId, validProgress, statusText = '') {
+            // 获取进度条元素
+            const progressFill = document.getElementById(`progress-fill-${fileId}`);
+            const progressText = document.getElementById(`progress-text-${fileId}`);
+            
+            if (!progressFill || !progressText) return;
+            
+            // 获取当前进度（从DOM读取实际宽度）
+            const currentWidthStr = progressFill.style.width || '0%';
+            const currentProgress = parseInt(currentWidthStr.replace('%', '')) || 0;
+            
+            // 🆕 优化：只在进度明显倒退时才阻止（差值>5%），允许小幅波动
+            if (validProgress < currentProgress - 5 && validProgress !== 0) {
+                console.log(`[进度保护] 文件 ${fileId} 进度从 ${currentProgress}% 尝试大幅倒退到 ${validProgress}%，已忽略`);
+                return;
+            }
+            
+            // 🆕 允许进度小幅倒退（如从42%到41%），这可能是后端修正
+            if (validProgress < currentProgress && validProgress !== 0) {
+                console.log(`[进度修正] 文件 ${fileId} 进度从 ${currentProgress}% 微调到 ${validProgress}%，允许更新`);
+            }
+            
+            // 更新最后进度值
+            lastProgressValues[fileId] = validProgress;
+            
+            // 如果进度为0且没有计时器运行，重置状态
+            if (validProgress === 0 && (!fileTimers[fileId] || !fileTimers[fileId].isRunning)) {
+                resetFileProgress(fileId);
+                return;
+            }
+            
+            // 注意：不在这里自动启动计时器，避免与恢复逻辑冲突
+            // 计时器的启动应该由调用方明确控制
+            
+            // 如果进度达到100%，停止计时器
+            if (validProgress >= 100) {
+                stopFileTimer(fileId);
+            }
+            
+            // 计算进度差异，决定动画类型
+            const progressDiff = Math.abs(validProgress - currentProgress);
+            
+            // 移除之前的动画类
+            progressFill.classList.remove('smooth-update', 'instant-update');
+            
+            // 根据进度差异选择合适的动画
+            if (progressDiff > 20) {
+                // 大幅跳跃时使用较快的过渡
+                progressFill.classList.add('instant-update');
+            } else if (progressDiff > 0) {
+                // 小幅变化时使用平滑过渡
+                progressFill.classList.add('smooth-update');
+            }
+            
+            // 🆕 强制刷新DOM，确保更新生效
+            requestAnimationFrame(() => {
+                progressFill.style.width = `${validProgress}%`;
+                
+                // 🆕 根据进度值动态切换颜色类
+                progressFill.classList.remove('progress-waiting', 'progress-high', 'progress-finishing', 'active-processing', 'completed');
+                if (validProgress >= 100) {
+                    progressFill.classList.add('completed');
+                } else if (validProgress >= 85) {
+                    progressFill.classList.add('progress-finishing', 'active-processing');
+                } else if (validProgress >= 60) {
+                    progressFill.classList.add('progress-high', 'active-processing');
+                } else if (validProgress > 0) {
+                    progressFill.classList.add('active-processing');
+                } else {
+                    progressFill.classList.add('progress-waiting');
+                }
+                
+                // 更新文本内容
+                if (statusText && statusText.trim()) {
+                    // 检测是否有双步骤并行（||| 分隔符）
+                    if (statusText.includes('|||')) {
+                        const parts = statusText.split('|||').map(s => s.trim()).filter(s => s);
+                        if (parts.length >= 2) {
+                            const step1 = getSimplifiedProcessStep(parts[0], validProgress);
+                            const step2 = getSimplifiedProcessStep(parts[1], validProgress);
+                            const isCompleted = validProgress >= 100;
+                            progressText.innerHTML = `
+                                <div class="dual-step-container">
+                                    <div class="process-step-indicator${isCompleted ? ' completed' : ''}">
+                                        <span class="step-icon"></span>
+                                        <span class="step-text">${validProgress}% - ${step1}</span>
+                                    </div>
+                                    <div class="process-step-indicator${isCompleted ? ' completed' : ''}">
+                                        <span class="step-icon"></span>
+                                        <span class="step-text">${step2}</span>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            const simplifiedStep = getSimplifiedProcessStep(parts[0] || statusText, validProgress);
+                            progressText.innerHTML = `
+                                <div class="process-step-indicator${validProgress >= 100 ? ' completed' : ''}">
+                                    <span class="step-icon"></span>
+                                    <span class="step-text">${validProgress}% - ${simplifiedStep}</span>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        // 单步骤（常规显示）
+                        const simplifiedStep = getSimplifiedProcessStep(statusText, validProgress);
+                        progressText.innerHTML = `
+                            <div class="process-step-indicator${validProgress >= 100 ? ' completed' : ''}">
+                                <span class="step-icon"></span>
+                                <span class="step-text">${validProgress}% - ${simplifiedStep}</span>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // 没有状态文本时，只显示百分比
+                    progressText.textContent = `${validProgress}%`;
+                }
+                
+                // 🆕 强制浏览器重绘
+                void progressFill.offsetHeight;
+            });
+        }
+        
+        // 将复杂的状态文本转换为简化的流程步骤
+        function getSimplifiedProcessStep(statusText, progress) {
+            function sanitizeStepText(text) {
+                if (!text) return '';
+                // 进度展示中隐藏具体组件名，只保留业务步骤
+                let t = String(text)
+                    .replace(/MinerU/gi, '解析引擎')
+                    .replace(/VLM/gi, '识别引擎')
+                    .replace(/LLM/gi, '结构化引擎')
+                    .replace(/本地VLM/gi, '识别引擎')
+                    .replace(/本地LLM/gi, '结构化引擎')
+                    .replace(/硅基流动/gi, '云端服务')
+                    .replace(/并行/g, '')
+                    .replace(/\s{2,}/g, ' ');
+                return t.trim();
+            }
+
+            // 优先使用后端提供的详细状态文本
+            if (statusText && statusText.trim()) {
+                return sanitizeStepText(statusText);
+            }
+            // 后端未提供状态时，根据进度范围显示默认步骤
+            if (progress <= 2) return '⏳ 准备开始处理...';
+            if (progress <= 15) return '⏳ PDF转换中...';
+            if (progress <= 18) return '📋 内容预处理中...';
+            if (progress <= 20) return '⏳ 等待表格识别...';
+            if (progress <= 45) return '📊 表格+正文提取中...';
+            if (progress <= 70) return '🏛️ 国自然信息提取中...';
+            if (progress <= 75) return '📝 识别结果处理中...';
+            if (progress <= 80) return '🔍 规则初筛检查中...';
+            if (progress <= 95) return '📚 参考文献验证中...';
+            if (progress < 100) return '💾 保存结果中...';
+            return '✅ 处理完成';
+        }
+        
+        
+        // 停止文档计时器并隐藏进度条
+        function stopDocumentProgress(fileId, finalTime = null) {
+            const progressContainer = document.getElementById(`progress-${fileId}`);
+            const progressText = document.getElementById(`progress-text-${fileId}`);
+            
+            // 使用新的独立计时器系统
+            stopFileTimer(fileId);
+            
+            // 显示完成状态
+            if (progressText) {
+                progressText.innerHTML = `
+                    <div class="process-step-indicator completed">
+                        <span class="step-icon"></span>
+                        <span>已完成</span>
+                    </div>
+                `;
+            }
+            
+            // 短暂显示完成状态后隐藏进度条
+            setTimeout(() => {
+                if (progressContainer) {
+                    progressContainer.classList.add('hidden');
+                }
+            }, 2000);
+            
+            // 更新文档状态为已完成
+            updateDocumentStatus(fileId, 'completed');
+            
+            // 将处理时间添加到文档信息中
+            if (finalTime) {
+                addProcessingTimeToDocument(fileId, finalTime);
+            }
+        }
+        
+        // 更新文档状态显示
+        function updateDocumentStatus(fileId, newStatus) {
+            const fileItem = document.querySelector(`[data-file-id="${fileId}"]`);
+            if (fileItem) {
+                const statusBadge = fileItem.querySelector('.status-badge');
+                if (statusBadge) {
+                    // 更新状态显示
+                    statusBadge.className = `status-badge status-${newStatus}`;
+                    statusBadge.textContent = getStatusText(newStatus);
+                }
+            }
+        }
+        
+        // 将处理时间添加到文档信息中
+        function addProcessingTimeToDocument(fileId, processingTime) {
+            const fileItem = document.querySelector(`[data-file-id="${fileId}"]`);
+            if (fileItem) {
+                const fileMeta = fileItem.querySelector('.file-meta');
+                if (fileMeta) {
+                    // 检查是否已经有处理时间显示
+                    const existingTime = fileMeta.querySelector('.processing-time');
+                    if (existingTime) {
+                        existingTime.innerHTML = `<i class="bi bi-clock me-1"></i>${processingTime}`;
+                    } else {
+                        // 添加新的处理时间显示
+                        const timeSpan = document.createElement('span');
+                        timeSpan.className = 'processing-time';
+                        timeSpan.innerHTML = `<i class="bi bi-clock me-1"></i>${processingTime}`;
+                        fileMeta.appendChild(timeSpan);
+                    }
+                }
+            }
+        }
+        
+        // 获取所有正在处理的文档进度
+        function updateAllDocumentProgress(isRecoveryCall = false) {
+            // 这个函数可以被一键解析的轮询调用，来更新所有文档的进度
+            fetch('/api/get-all-progress')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.progress) {
+                    console.log('[进度更新] 收到进度数据:', data.progress);
+                    console.log(`[统计信息] 总任务数: ${data.total_tasks}, 线程完成: ${data.thread_completed_count}, 数据完成: ${data.data_completed_count}, 进行中: ${data.processing_count}`);
+                    
+                    for (const [fileId, progressInfo] of Object.entries(data.progress)) {
+                        // 避免重复处理已完成的任务
+                        if (window.completedFiles && window.completedFiles.has(fileId)) {
+                            console.log(`[跳过处理] 文件 ${fileId} 已完成，跳过处理`);
+                            continue;
+                        }
+                        if (progressInfo.status === 'processing') {
+                            // 如果不是恢复调用，跳过恢复逻辑，直接显示当前进度
+                            if (!isRecoveryCall) {
+                                const progress = Math.max(0, Math.min(100, parseInt(progressInfo.progress) || 0));
+                                console.log(`[常规更新] 文件 ${fileId} 当前进度: ${progress}%, 状态: ${progressInfo.stage}`);
+                                console.log(`[开始时间检查] 文件 ${fileId} start_time值:`, progressInfo.start_time, '类型:', typeof progressInfo.start_time);
+                                
+                                // 检查是否有开始时间，决定是否启动计时器和进度条显示
+                                const startTime = progressInfo.start_time ? new Date(progressInfo.start_time * 1000).getTime() : null;
+                                const progressContainer = document.getElementById(`progress-${fileId}`);
+                                const progressBarContainer = progressContainer?.querySelector('.progress-container');
+                                
+                                if (!startTime || startTime === 0 || isNaN(startTime)) {
+                                    // ⏳ 任务还在等待中：显示进度条但设置为等待状态（0%）
+                                    if (progressContainer) {
+                                        progressContainer.classList.remove('hidden');
+                                    }
+                                    if (progressBarContainer) {
+                                        progressBarContainer.classList.remove('hidden');
+                                    }
+                                    
+                                    // 显示等待状态的进度条（0%，灰色）
+                                    updateDocumentProgressWithoutTimer(fileId, 0, '⏳ 正在等待处理...');
+                                    
+                                    // 停止计时器，显示"正在等待"
+                                    stopFileTimer(fileId);
+                                    const timerElement = document.getElementById(`timer-${fileId}`);
+                                    if (timerElement) {
+                                        timerElement.textContent = '正在等待';
+                                        timerElement.style.color = '#6c757d';
+                                        timerElement.style.fontWeight = 'normal';
+                                    }
+                                } else {
+                                    // 🚀 任务正在执行：显示进度条和计时器
+                                    if (progressContainer) {
+                                        progressContainer.classList.remove('hidden');
+                                    }
+                                    if (progressBarContainer) {
+                                        progressBarContainer.classList.remove('hidden');
+                                    }
+                                    
+                                    // 更新状态为"处理中"
+                                    updateDocumentStatus(fileId, 'processing');
+                                    
+                                    // 更新进度显示
+                                    if (progressInfo.stage) {
+                                        updateDocumentProgressWithoutTimer(fileId, progress, progressInfo.stage);
+                                    } else {
+                                        updateDocumentProgressWithoutTimer(fileId, progress, '⚙️ 处理中...');
+                                    }
+                                    
+                                    // 启动计时器（检查计时器是否已运行，避免重复启动）
+                                    if (!fileTimers[fileId] || !fileTimers[fileId].isRunning) {
+                                        startFileTimer(fileId, startTime);
+                                    }
+                                }
+                                continue;
+                            }
+                            
+                            // 严格的恢复条件检查：只在页面刷新后5秒内进行恢复
+                            const now = Date.now();
+                            const pageLoadTime = window.pageLoadTime || now;
+                            const timeSincePageLoad = now - pageLoadTime;
+                            const startTime = progressInfo.start_time ? new Date(progressInfo.start_time * 1000).getTime() : null;
+                            const progressContainer = document.getElementById(`progress-${fileId}`);
+                            const progressBarContainer = progressContainer?.querySelector('.progress-container');
+                            
+                            // 如果没有开始时间，说明任务还在等待，不进行恢复
+                            if (!startTime) {
+                                // ⏳ 任务还在等待：显示进度条但设置为等待状态
+                                if (progressContainer) {
+                                    progressContainer.classList.remove('hidden');
+                                }
+                                if (progressBarContainer) {
+                                    progressBarContainer.classList.remove('hidden');
+                                }
+                                
+                                // 显示等待状态的进度条（0%，灰色）
+                                updateDocumentProgressWithoutTimer(fileId, 0, '⏳ 正在等待处理...');
+                                
+                                stopFileTimer(fileId);
+                                const timerElement = document.getElementById(`timer-${fileId}`);
+                                if (timerElement) {
+                                    timerElement.textContent = '正在等待';
+                                    timerElement.style.color = '#6c757d';
+                                    timerElement.style.fontWeight = 'normal';
+                                }
+                                continue;
+                            }
+                            
+                            // 检查是否应该恢复：
+                            // 1. 页面加载后5秒内 AND
+                            // 2. 有有效的开始时间 AND  
+                            // 3. 任务开始时间在页面加载前
+                            const shouldRecover = timeSincePageLoad <= 5000 && 
+                                                startTime && 
+                                                startTime < pageLoadTime;
+                            
+                            if (!shouldRecover) {
+                                console.log(`[恢复跳过] 文件 ${fileId} 不符合恢复条件: 页面加载${timeSincePageLoad}ms, 开始时间: ${startTime ? new Date(startTime).toLocaleTimeString() : '无'}`);
+                                continue;
+                            }
+                            
+                            // 确保进度值是有效数字
+                            const progress = Math.max(0, Math.min(100, parseInt(progressInfo.progress) || 0));
+                            
+                            console.log(`[进度恢复] 文件 ${fileId} 恢复进度: ${progress}%, 状态: ${progressInfo.stage}`);
+                            
+                            // 🚀 任务正在执行：显示进度条和计时器
+                            if (progressBarContainer) {
+                                progressBarContainer.classList.remove('hidden');
+                            }
+                            if (progressContainer) {
+                                // 使用后端返回的stage信息，如果没有则显示通用处理信息
+                                const stageMessage = progressInfo.stage || '⚙️ 正在处理中...';
+                                updateDocumentProgress(fileId, progress, stageMessage);
+                            }
+                            
+                            // 检查并启动计时器（避免重复启动）
+                            if (!fileTimers[fileId] || !fileTimers[fileId].isRunning) {
+                                if (startTime) {
+                                    console.log(`[计时器恢复] 文件 ${fileId} 从 ${new Date(startTime).toLocaleTimeString()} 开始计时`);
+                                    startFileTimer(fileId, startTime);
+                                } else if (progress > 0) {
+                                    console.log(`[计时器启动] 文件 ${fileId} 从现在开始计时`);
+                                    startFileTimer(fileId);
+                                }
+                            } else {
+                                console.log(`[计时器跳过] 文件 ${fileId} 计时器已在运行`);
+                            }
+                        } else if (progressInfo.status === 'completed') {
+                            // 这是线程处理完成，立即停止计时器和隐藏进度条
+                            console.log(`[线程完成] 文件 ${fileId} 处理线程完成:`, progressInfo);
+                            console.log(`[数据状态] 文件 ${fileId} 数据完成状态: ${progressInfo.data_complete ? '完成' : '不完整'}`);
+                            
+                            // 立即停止计时器
+                            stopFileTimer(fileId);
+                            
+                            // 立即显示100%进度和完成信息
+                            const completionMessage = progressInfo.data_complete ? 
+                                '✅ 处理完成，数据齐全' : '✅ 处理完成，正在整理数据';
+                            updateDocumentProgress(fileId, 100, completionMessage);
+                            
+                            // 显示处理时间信息
+                            const progressText = document.getElementById(`progress-text-${fileId}`);
+                            if (progressText && progressInfo.processing_time_str) {
+                                progressText.innerHTML = `
+                                    <div class="process-step-indicator completed">
+                                        <span class="step-icon"></span>
+                                        <span>${completionMessage} (${progressInfo.processing_time_str})</span>
+                                    </div>
+                                `;
+                            }
+                            
+                            // 标记该文件已处理完成，避免重复处理
+                            if (!window.completedFiles) window.completedFiles = new Set();
+                            window.completedFiles.add(fileId);
+                            
+                            // 立即通知用户任务完成
+                            console.log(`[任务完成] 文件 ${progressInfo.filename || fileId} 线程处理完成，耗时: ${progressInfo.processing_time_str || '未知'}`);
+                            
+                            // 刷新文件列表，然后检查是否所有任务都完成了
+                            setTimeout(() => {
+                                loadFileList();
+                                // 给文件列表加载一点时间
+                                setTimeout(() => {
+                                    checkTaskCompletion();
+                                }, 500);
+                            }, 100);
+                            // 立即隐藏进度条和计时器，显示完成状态
+                            setTimeout(() => {
+                                const progressContainer = document.getElementById(`progress-${fileId}`);
+                                if (progressContainer) {
+                                    // 不是隐藏，而是更新为完成状态
+                                    const progressBar = progressContainer.querySelector('.progress-fill');
+                                    const progressText = progressContainer.querySelector('.progress-text');
+                                    const timerContainer = progressContainer.parentElement.querySelector('.processing-timer');
+                                    
+                                    if (progressBar) {
+                                        progressBar.style.width = '100%';
+                                        progressBar.classList.add('completed');
+                                        // 根据数据完整性设置不同的背景色
+                                        if (progressInfo.data_complete) {
+                                            progressBar.style.background = 'linear-gradient(90deg, #28a745 0%, #20c997 100%)';
+                                        } else {
+                                            progressBar.style.background = 'linear-gradient(90deg, #ffc107 0%, #ffca2c 100%)';
+                                        }
+                                    }
+                                    
+                                    if (progressText) {
+                                        progressText.textContent = progressInfo.data_complete ? '✅ 完成' : '⚠️ 处理完成';
+                                        progressText.style.color = progressInfo.data_complete ? '#28a745' : '#ffc107';
+                                    }
+                                    
+                                    // 隐藏计时器
+                                    if (timerContainer) {
+                                        timerContainer.style.display = 'none';
+                                    }
+                                    
+                                    console.log(`[状态更新] 文件 ${fileId} 进度条更新为完成状态，数据${progressInfo.data_complete ? '完整' : '不完整'}`);
+                                }
+                                
+                                // 2秒后才隐藏整个进度条
+                                setTimeout(() => {
+                                    const progressContainer = document.getElementById(`progress-${fileId}`);
+                                    if (progressContainer) {
+                                        progressContainer.classList.add('hidden');
+                                        console.log(`[进度隐藏] 文件 ${fileId} 进度条已隐藏`);
+                                    }
+                                    
+                                    // 检查是否还有其他进行中的任务
+                                    const hasOtherRunningTasks = Object.keys(fileTimers).some(id => 
+                                        id !== fileId && fileTimers[id] && fileTimers[id].isRunning
+                                    );
+                                    
+                                    if (!hasOtherRunningTasks) {
+                                        // 没有其他任务在运行，检查是否所有任务都完成
+                                        console.log(`[个别完成] 文件 ${fileId} 完成，没有其他运行任务，检查全局状态`);
+                                        setTimeout(() => {
+                                            checkTaskCompletion();
+                                        }, 1000);
+                                    } else {
+                                        // 有其他任务在运行，只刷新文件列表
+                                        console.log(`[部分刷新] 文件 ${fileId} 完成，但有 ${Object.keys(fileTimers).filter(id => id !== fileId && fileTimers[id] && fileTimers[id].isRunning).length} 个其他任务在运行`);
+                                        setTimeout(() => {
+                                            loadFileList();
+                                        }, 1000);
+                                    }
+                                }, 2000); // 2秒后隐藏
+                            }, 500); // 0.5秒后更新状态
+                        } else if (progressInfo.status === 'cancelled') {
+                            console.log(`[任务取消] 文件 ${fileId} 任务已被取消:`, progressInfo);
+                            // 停止计时器并隐藏进度条
+                            stopFileTimer(fileId);
+                            updateDocumentProgress(fileId, 0, '❌ 任务已取消');
+                            setTimeout(() => {
+                                const progressContainer = document.getElementById(`progress-${fileId}`);
+                                if (progressContainer) {
+                                    progressContainer.classList.add('hidden');
+                                }
+                                console.log(`[取消隐藏] 文件 ${fileId} 取消进度条已隐藏`);
+                            }, 1000); // 1秒后隐藏
+                        }
+                    }
+                    
+                    // 检查是否所有任务进程都已完成
+                    const totalTasks = Object.keys(data.progress).length;
+                    const threadCompletedCount = data.thread_completed_count || 0;
+                    const processingCount = data.processing_count || 0;
+                    const dataCompletedCount = data.data_completed_count || 0;
+                    
+                    console.log(`[全局检查] 总任务: ${totalTasks}, 线程完成: ${threadCompletedCount}, 进行中: ${processingCount}, 数据完成: ${dataCompletedCount}`);
+                    
+                    // 注意：跳转检查已经在各个完成事件中处理，这里不需要重复调用
+                }
+            });
+        }
+
+        // ==================== 一键解析功能实现结束 ====================
+
+        // 检查所有任务进程是否已完成，并在完成后跳转
+        // 简化的任务完成检查和跳转
+        let completionAlertShown = false; // 防止重复提示
+        function checkTaskCompletion() {
+            // 检查当前文件列表是否为空
+            if (allFiles && allFiles.length === 0) {
+                // 防止重复提示和跳转
+                if (completionAlertShown) {
+                    console.log('[跳转] 已经显示过完成提示，忽略重复调用');
+                    return;
+                }
+                completionAlertShown = true;
+                
+                console.log('[跳转] 文件列表已清空，所有任务处理完成，准备跳转');
+                showAlert('success', '🎉 所有任务均已处理完成！正在跳转...');
+                
+                setTimeout(() => {
+                    window.location.href = '/parsed-documents';
+                }, 2000);
+            } else {
+                console.log(`[跳转检查] 文件列表还有 ${allFiles ? allFiles.length : 0} 个文件，暂不跳转`);
+            }
+        }
+    </script>
+    
+    <!-- Bootstrap JS 已由 base_ynex.html 加载，不可重复引入 -->
+    
+    <!-- YNEX JS (通过base_ynex.html加载) -->
+{% endblock %}

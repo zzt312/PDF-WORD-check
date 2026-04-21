@@ -1,0 +1,163 @@
+{% extends "base_ynex_word.html" %}
+
+{% block title %}发送反馈 - 参考文献检查系统{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/user_send_feedback.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">发送反馈</h4>
+                </div>
+                <div class="card-body">
+                    <form id="feedbackForm" class="needs-validation" novalidate>
+                        <div class="row">
+                            <!-- 反馈类型 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="feedbackType" class="form-label">反馈类型 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="feedbackType" name="feedback_type" required>
+                                    <option value="">请选择反馈类型</option>
+                                    <option value="bug">系统错误/Bug报告</option>
+                                    <option value="feature">功能建议</option>
+                                    <option value="api">API配置问题</option>
+                                    <option value="performance">性能问题</option>
+                                    <option value="ui">界面/体验问题</option>
+                                    <option value="other">其他问题</option>
+                                </select>
+                                <div class="invalid-feedback">请选择反馈类型</div>
+                            </div>
+
+                            <!-- 优先级 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="priority" class="form-label">优先级 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="priority" name="priority" required>
+                                    <option value="">请选择优先级</option>
+                                    <option value="low">低 - 一般性建议</option>
+                                    <option value="medium">中 - 影响使用体验</option>
+                                    <option value="high">高 - 影响核心功能</option>
+                                    <option value="urgent">紧急 - 系统无法使用</option>
+                                </select>
+                                <div class="invalid-feedback">请选择优先级</div>
+                            </div>
+                        </div>
+
+                        <!-- 反馈标题 -->
+                        <div class="mb-3">
+                            <label for="feedbackTitle" class="form-label">反馈标题 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="feedbackTitle" name="title" 
+                                   placeholder="请简要描述您的问题或建议" maxlength="100" required>
+                            <div class="invalid-feedback">请输入反馈标题</div>
+                            <div class="character-counter text-muted">0/100</div>
+                        </div>
+
+                        <!-- 详细描述 -->
+                        <div class="mb-3">
+                            <label for="feedbackContent" class="form-label">详细描述 <span class="text-danger">*</span></label>
+                            
+                            <!-- 富文本编辑器 -->
+                            <div class="editor-container">
+                                <div class="editor-toolbar">
+                                    <button type="button" class="editor-btn" data-command="bold" title="加粗 (Ctrl+B)">
+                                        <i class="fe fe-bold"></i>
+                                    </button>
+                                    <button type="button" class="editor-btn" data-command="italic" title="斜体 (Ctrl+I)">
+                                        <i class="fe fe-italic"></i>
+                                    </button>
+                                    <button type="button" class="editor-btn" data-command="underline" title="下划线 (Ctrl+U)">
+                                        <i class="fe fe-underline"></i>
+                                    </button>
+                                    <div class="vr mx-1"></div>
+                                    <button type="button" class="editor-btn" data-command="insertUnorderedList" title="无序列表">
+                                        <i class="fe fe-list"></i>
+                                    </button>
+                                    <button type="button" class="editor-btn" data-command="insertOrderedList" title="有序列表">
+                                        <i class="fe fe-hash"></i>
+                                    </button>
+                                    <div class="vr mx-1"></div>
+                                    <button type="button" class="editor-btn" data-command="justifyLeft" title="左对齐">
+                                        <i class="fe fe-align-left"></i>
+                                    </button>
+                                    <button type="button" class="editor-btn" data-command="justifyCenter" title="居中">
+                                        <i class="fe fe-align-center"></i>
+                                    </button>
+                                    <button type="button" class="editor-btn" data-command="removeFormat" title="清除格式">
+                                        <i class="fe fe-x"></i>
+                                    </button>
+                                </div>
+                                <div class="editor-content" 
+                                     contenteditable="true" 
+                                     id="richTextEditor"
+                                     data-placeholder="请详细描述您遇到的问题或建议...支持加粗、斜体、列表等格式"
+                                     style="min-height: 120px;"></div>
+                            </div>
+                            
+                            <!-- 隐藏的textarea用于表单提交 -->
+                            <textarea class="d-none" id="feedbackContent" name="content" required></textarea>
+                            
+                            <div class="invalid-feedback">请输入详细描述</div>
+                            <div class="character-counter text-muted">0/2000</div>
+                            <div class="form-text">
+                                <strong>格式化提示：</strong>
+                                <ul class="mb-0 mt-1" style="font-size: 0.8rem;">
+                                    <li>使用工具栏进行文本格式化</li>
+                                    <li>快捷键: Ctrl+B(加粗), Ctrl+I(斜体), Ctrl+U(下划线)</li>
+                                    <li>建议包含：问题现象、重现步骤、期望结果、浏览器信息</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- 联系方式提示 -->
+                        <div class="alert alert-info">
+                            <i class="fe fe-info"></i>
+                            <strong>联系方式：</strong> 我们会通过系统通知回复您的反馈。您也可以在个人资料中更新邮箱，以便我们在必要时联系您。
+                        </div>
+
+                        <!-- 提交按钮 -->
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-outline-secondary me-2" onclick="resetForm()">
+                                <i class="fe fe-refresh-cw"></i> 重置
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fe fe-send"></i> 提交反馈
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 成功提示模态框 -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="successModalLabel">
+                    <i class="fe fe-check-circle me-2"></i>反馈提交成功
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>感谢您的反馈！我们已收到您的意见，并会尽快处理。</p>
+                <p>您可以通过通知中心查看我们的回复。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" onclick="location.href='/word/notifications'">
+                    <i class="fe fe-bell"></i> 查看通知
+                </button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">继续反馈</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/user_send_feedback.js') }}"></script>
+{% endblock %}

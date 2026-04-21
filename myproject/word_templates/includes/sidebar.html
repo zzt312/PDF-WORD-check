@@ -1,0 +1,113 @@
+<!-- Start::app-sidebar -->
+<aside class="app-sidebar sticky" id="sidebar">
+
+    <!-- Start::main-sidebar-header -->
+    <div class="main-sidebar-header">
+        <a href="{{ url_for('word_dashboard') }}" class="header-logo">
+            <span class="desktop-logo fw-bold text-white fs-20">参考文献检查系统</span>
+            <span class="toggle-logo d-flex align-items-center justify-content-center" style="width: 100%; height: 100%;"><i class="bx bx-bookmark-heart text-white" style="font-size: 28px;"></i></span>
+            <span class="desktop-dark fw-bold text-white fs-20">参考文献检查系统</span>
+            <span class="toggle-dark d-flex align-items-center justify-content-center" style="width: 100%; height: 100%;"><i class="bx bx-bookmark-heart text-white" style="font-size: 28px;"></i></span>
+        </a>
+    </div>
+    <!-- End::main-sidebar-header -->
+
+    <!-- Start::main-sidebar -->
+    <div class="main-sidebar" id="sidebar-scroll">
+
+        <!-- Start::nav -->
+        <nav class="main-menu-container nav nav-pills flex-column sub-open">
+            <div class="slide-left" id="slide-left">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191" width="24" height="24" viewBox="0 0 24 24"> <path d="M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z"></path> </svg>
+            </div>
+            <ul class="main-menu">
+                <!-- Start::slide__category -->
+                <li class="slide__category"><span class="category-name">主要功能</span></li>
+                <!-- End::slide__category -->
+
+                <!-- Start::slide -->
+                <li class="slide {{ 'has-active' if request.endpoint == 'word_dashboard' else '' }}">
+                    <a href="{{ url_for('word_dashboard') }}" class="side-menu__item {{ 'active' if request.endpoint == 'word_dashboard' else '' }}">
+                        <i class="bx bx-home side-menu__icon"></i>
+                        <span class="side-menu__label">上传文件</span>
+                    </a>
+                </li>
+                <!-- End::slide -->
+
+                <!-- Start::slide -->
+                <li class="slide {{ 'has-active' if request.endpoint == 'word_parsed_documents' else '' }}">
+                    <a href="{{ url_for('word_parsed_documents') }}" class="side-menu__item {{ 'active' if request.endpoint == 'word_parsed_documents' else '' }}">
+                        <i class="bx bx-file side-menu__icon"></i>
+                        <span class="side-menu__label">已解析文档</span>
+                    </a>
+                </li>
+                <!-- End::slide -->
+
+                <!-- Start::slide__category -->
+                <li class="slide__category"><span class="category-name">用户中心</span></li>
+                <!-- End::slide__category -->
+
+                <!-- Start::slide -->
+                <li class="slide {{ 'has-active' if request.endpoint == 'word_user_info_ynex' else '' }}">
+                    <a href="{{ url_for('word_user_info_ynex') }}" class="side-menu__item {{ 'active' if request.endpoint == 'word_user_info_ynex' else '' }}">
+                        <i class="bx bx-user-circle side-menu__icon"></i>
+                        <span class="side-menu__label">个人信息</span>
+                    </a>
+                </li>
+                <!-- End::slide -->
+
+                <!-- Start::slide__category -->
+                {% if session.get('role') in ['admin', 'premium'] %}
+                <li class="slide__category admin-only"><span class="category-name">管理专区</span></li>
+                <!-- End::slide__category -->
+
+                <!-- Start::slide -->
+                <li class="slide admin-only {{ 'has-active' if request.endpoint == 'word_admin_dashboard' else '' }}">
+                    <a href="{{ url_for('word_admin_dashboard') }}" class="side-menu__item {{ 'active' if request.endpoint == 'word_admin_dashboard' else '' }}">
+                        <i class="bx bx-group side-menu__icon"></i>
+                        <span class="side-menu__label">管理员仪表板</span>
+                    </a>
+                </li>
+                <!-- End::slide -->
+
+                <!-- Start::slide -->
+                <li class="slide admin-only {{ 'has-active' if request.endpoint == 'word_admin_users' else '' }}">
+                    <a href="{{ url_for('word_admin_users') }}" class="side-menu__item {{ 'active' if request.endpoint == 'word_admin_users' else '' }}">
+                        <i class="bx bx-group side-menu__icon"></i>
+                        <span class="side-menu__label">用户管理</span>
+                    </a>
+                </li>
+                <!-- End::slide -->
+
+                <!-- Start::slide -->
+                <li class="slide admin-only {{ 'has-active' if request.endpoint == 'word_group_management' else '' }}">
+                    <a href="{{ url_for('word_group_management') }}" class="side-menu__item {{ 'active' if request.endpoint == 'word_group_management' else '' }}">
+                        <i class="bx bx-group side-menu__icon"></i>
+                        <span class="side-menu__label">分组管理</span>
+                    </a>
+                </li>
+                <!-- End::slide -->
+                {% endif %}
+
+                <!-- Start::slide__category -->
+                <li class="slide__category"><span class="category-name">系统设置</span></li>
+                <!-- End::slide__category -->
+
+                <!-- Start::slide -->
+                <li class="slide">
+                    <a href="{{ url_for('word_logout') }}" class="side-menu__item">
+                        <i class="bx bx-log-out side-menu__icon"></i>
+                        <span class="side-menu__label">退出登录</span>
+                    </a>
+                </li>
+                <!-- End::slide -->
+            </ul>
+            <div class="slide-right" id="slide-right"><svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191" width="24" height="24" viewBox="0 0 24 24"> <path d="M10.707 17.707 16.414 12l-5.707-5.707-1.414 1.414L13.586 12l-4.293 4.293z"></path> </svg></div>
+        </nav>
+        <!-- End::nav -->
+
+    </div>
+    <!-- End::main-sidebar -->
+
+</aside>
+<!-- End::app-sidebar -->

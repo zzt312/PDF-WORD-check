@@ -1,0 +1,215 @@
+{% extends "base_ynex.html" %}
+
+{% block title %}用户分组管理 - 文档重点提取系统{% endblock %}
+
+{% block extra_css %}
+<!-- 分组管理专用样式 -->
+<link href="{{ url_for('static', filename='css/group_management.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<!-- Flash消息 -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="flash-message" data-type="{{ 'danger' if category == 'error' else 'success' }}" data-message="{{ message }}" style="display: none;"></div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- 页面标题区 -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="page-title mb-0">用户分组管理</h4>
+        <p class="text-muted mb-0">管理用户分组和API密钥配置</p>
+    </div>
+</div>
+
+<!-- 分组管理工具栏 -->
+<div class="card custom-card mb-4">
+    <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between group-toolbar">
+            <!-- 左侧：统计信息和批量操作 -->
+            <div class="d-flex align-items-center gap-3">
+                <div class="group-count-container">
+                    <div class="group-count">总计：<span id="groupCount">0</span></div>
+                    <div class="group-count">已选择：<span id="selectedGroupCount">0</span></div>
+                </div>
+                <div class="select-all-section">
+                    <input type="checkbox" id="selectAllGroupsCheckbox" class="select-all-checkbox" onchange="toggleSelectAllGroups()">
+                    <label for="selectAllGroupsCheckbox" class="select-all-label">全选</label>
+                </div>
+            </div>
+            
+            <!-- 右侧：搜索和操作按钮 -->
+            <div class="d-flex align-items-center gap-2">
+                <!-- 状态筛选 -->
+                <select class="form-select form-select-sm" id="statusFilter" style="width: 120px;">
+                    <option value="">全部状态</option>
+                    <option value="confirmed">确定分组</option>
+                    <option value="temporary">临时分组</option>
+                </select>
+                <div class="input-group" style="width: 280px;">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control" placeholder="搜索分组名称..." 
+                           id="searchGroupInput" onkeyup="searchGroups()" 
+                           autocomplete="new-password" data-form-type="search" 
+                           spellcheck="false" autocorrect="off" autocapitalize="off"
+                           data-lpignore="true" data-form-type="other"
+                           readonly onfocus="this.removeAttribute('readonly')">
+                </div>
+                {% if session.get('role') == 'admin' %}
+                <button type="button" class="btn btn-sm btn-outline-danger" id="batchDeleteBtn" onclick="batchDeleteGroups()" disabled>
+                    <i class="bi bi-trash me-1"></i>批量删除
+                </button>
+                {% endif %}
+                {% if session.get('role') == 'admin' %}
+                <button type="button" class="btn btn-sm btn-primary" onclick="showCreateGroupModal()">
+                    <i class="bi bi-plus-circle me-1"></i>新建分组
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 分组卡片区域 -->
+<div id="groupCardsContainer">
+    <!-- 分组卡片将通过JavaScript动态加载 -->
+    <div id="dynamicGroupCards">
+        <!-- 动态生成的分组卡片将在这里显示 -->
+    </div>
+</div>
+
+<!-- 新建分组模态框 -->
+<div class="modal fade" id="createGroupModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新建分组</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createGroupForm">
+                    <div class="mb-3">
+                        <label for="groupName" class="form-label">分组名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="groupName" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">选择用户加入分组</label>
+                        
+                        <!-- 搜索筛选 -->
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" class="form-control" id="createGroupUserSearchInput" 
+                                           placeholder="搜索用户名或邮箱..." 
+                                           autocomplete="new-password" data-form-type="search" 
+                                           spellcheck="false" autocorrect="off" autocapitalize="off">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm" id="createGroupRoleFilter">
+                                    <option value="">全部角色</option>
+                                    <option value="admin">管理员</option>
+                                    <option value="premium">高级用户</option>
+                                    <option value="user">普通用户</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- 用户列表 -->
+                        <div class="create-group-user-list-container users-container">
+                            <div class="list-group list-group-flush" id="createGroupUserListGroup">
+                                <!-- 用户列表将通过JavaScript动态加载 -->
+                            </div>
+                        </div>
+                        
+                        <!-- 已选择用户预览 -->
+                        <div class="mt-3" id="selectedUsersPreview">
+                            <small class="text-muted">已选择 <span id="selectedUserCount">0</span> 个用户</small>
+                            <div id="selectedUsersList" class="mt-2">
+                                <!-- 已选择的用户标签将在这里显示 -->
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveNewGroup()">创建分组</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加用户模态框 -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加用户到分组</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 搜索筛选 -->
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="userSearchInput" 
+                                   placeholder="搜索用户名或邮箱..." 
+                                   autocomplete="new-password" data-form-type="search" 
+                                   spellcheck="false" autocorrect="off" autocapitalize="off">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="roleFilter">
+                            <option value="">全部角色</option>
+                            <option value="admin">管理员</option>
+                            <option value="premium">高级用户</option>
+                            <option value="user">普通用户</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 用户列表 -->
+                <div class="user-list-container users-container">
+                    <div class="list-group" id="userListGroup">
+                        <!-- 用户列表将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+                
+                <!-- 选择统计信息 -->
+                <div class="mt-3 text-muted">
+                    <small>
+                        <i class="bi bi-info-circle me-1"></i>
+                        已选择 <span id="selectedUserCount" class="fw-bold text-primary">0</span> 个用户
+                        <span class="ms-2">|</span>
+                        <span class="ms-2">新成员将自动获得当前分组的API密钥配置</span>
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveSelectedUsers()">添加选中用户</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- 用户角色权限控制 - 在JS加载前设置 -->
+<script>
+    // 使用正确的session获取方式
+    window.currentUserRole = "{% if session.get('role') == 'admin' %}admin{% elif session.get('role') == 'premium' %}premium{% else %}user{% endif %}";
+    window.isAdmin = window.currentUserRole === 'admin';
+</script>
+<!-- 分组管理专用脚本 -->
+<script src="{{ url_for('static', filename='js/group_management.js') }}"></script>
+{% endblock %}

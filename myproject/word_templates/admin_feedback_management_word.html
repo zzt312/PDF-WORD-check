@@ -1,0 +1,277 @@
+{% extends "base_ynex_word.html" %}
+
+{% block title %}反馈管理 - 参考文献检查系统{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_feedback_management.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和操作按钮 -->
+    <div class="row mb-4">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="card-title mb-0">
+                            <i class="fe fe-message-circle text-primary me-2"></i>用户反馈管理
+                        </h4>
+                        <p class="card-subtitle text-muted mt-1">管理和回复用户反馈</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshFeedbacks()">
+                            <i class="fe fe-refresh-cw"></i> 刷新
+                        </button>
+                        <button type="button" class="btn btn-info btn-sm" onclick="showStatistics()">
+                            <i class="fe fe-bar-chart-2"></i> 统计
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="exportFeedbacks()">
+                            <i class="fe fe-download"></i> 导出
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 过滤器和搜索 -->
+    <div class="row mb-4">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">状态筛选</label>
+                            <select class="form-select" id="statusFilter" onchange="applyFilters()">
+                                <option value="">全部状态</option>
+                                <option value="pending">待处理</option>
+                                <option value="processing">处理中</option>
+                                <option value="resolved">已解决</option>
+                                <option value="closed">已关闭</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">优先级筛选</label>
+                            <select class="form-select" id="priorityFilter" onchange="applyFilters()">
+                                <option value="">全部优先级</option>
+                                <option value="urgent">紧急</option>
+                                <option value="high">高</option>
+                                <option value="medium">中</option>
+                                <option value="low">低</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">类型筛选</label>
+                            <select class="form-select" id="typeFilter" onchange="applyFilters()">
+                                <option value="">全部类型</option>
+                                <option value="bug">Bug报告</option>
+                                <option value="feature">功能建议</option>
+                                <option value="api">API问题</option>
+                                <option value="performance">性能问题</option>
+                                <option value="ui">界面问题</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">搜索</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchInput" 
+                                       placeholder="搜索标题或内容..." onkeyup="applyFilters()">
+                                <button class="btn btn-outline-secondary" onclick="clearSearch()">
+                                    <i class="fe fe-x"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 反馈列表 -->
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">反馈列表</h5>
+                        <div id="feedbackCount" class="badge bg-primary">0 条反馈</div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- 加载状态 -->
+                    <div id="loadingState" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-2">正在加载反馈列表...</p>
+                    </div>
+
+                    <!-- 反馈表格 -->
+                    <div id="feedbackTable" class="table-responsive" style="display: none;">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                    </th>
+                                    <th>标题</th>
+                                    <th>用户</th>
+                                    <th>类型</th>
+                                    <th>优先级</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="feedbackTableBody">
+                                <!-- 动态加载内容 -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 空状态 -->
+                    <div id="emptyState" class="text-center py-5" style="display: none;">
+                        <i class="fe fe-message-circle text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="text-muted mt-3">暂无反馈数据</h5>
+                        <p class="text-muted">当前没有符合条件的反馈记录</p>
+                    </div>
+                </div>
+
+                <!-- 分页 -->
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="batchDelete()" disabled id="batchDeleteBtn">
+                                <i class="fe fe-trash-2"></i> 批量删除
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="batchUpdateStatus()" disabled id="batchUpdateBtn">
+                                <i class="fe fe-edit"></i> 批量更新状态
+                            </button>
+                        </div>
+                        <nav id="pagination">
+                            <!-- 动态生成分页 -->
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 反馈详情模态框 -->
+<div class="modal fade" id="feedbackDetailModal" tabindex="-1" aria-labelledby="feedbackDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feedbackDetailModalLabel">
+                    <i class="fe fe-eye text-info me-2"></i>反馈详情
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="feedbackDetailContent">
+                <!-- 动态加载内容 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" onclick="replyToFeedback()">
+                    <i class="fe fe-message-square"></i> 回复
+                </button>
+                <button type="button" class="btn btn-success" onclick="updateFeedbackStatus('resolved')">
+                    <i class="fe fe-check"></i> 标记为已解决
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 回复模态框 -->
+<div class="modal fade" id="replyModal" tabindex="-1" aria-labelledby="replyModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="replyModalLabel">
+                    <i class="fe fe-message-square text-primary me-2"></i>回复反馈
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="replyForm">
+                    <input type="hidden" id="replyFeedbackId">
+                    <div class="mb-3">
+                        <label for="replyContent" class="form-label">回复内容 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="replyContent" rows="4" 
+                                  placeholder="请输入您的回复内容..." required></textarea>
+                        <div class="form-text">回复将会发送给用户作为系统通知</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="replyStatus" class="form-label">更新状态</label>
+                        <select class="form-select" id="replyStatus">
+                            <option value="">保持当前状态</option>
+                            <option value="processing">处理中</option>
+                            <option value="resolved">已解决</option>
+                            <option value="closed">已关闭</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitReply()">
+                    <i class="fe fe-send"></i> 发送回复
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 统计模态框 -->
+<div class="modal fade" id="statisticsModal" tabindex="-1" aria-labelledby="statisticsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statisticsModalLabel">
+                    <i class="fe fe-bar-chart-2 text-info me-2"></i>反馈统计
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="statisticsContent">
+                <!-- 动态加载统计内容 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 批量操作模态框 -->
+<div class="modal fade" id="batchActionModal" tabindex="-1" aria-labelledby="batchActionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="batchActionModalLabel">
+                    <i class="fe fe-edit text-primary me-2"></i>批量操作
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="batchActionContent">
+                    <!-- 动态内容 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="confirmBatchAction()">
+                    <i class="fe fe-check"></i> 确认操作
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/admin_feedback_management.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,37 @@
+<!-- ============================================================
+     统一通知徽章更新脚本
+     使用轻量级 /api/user/notification-count 端点
+     ============================================================ -->
+{% if session.username %}
+<script>
+(function() {
+    async function updateNotificationBadge() {
+        try {
+            const response = await fetch('/api/user/notification-count');
+            const data = await response.json();
+            if (data.success) {
+                const unreadCount = data.count || 0;
+                const badge = document.getElementById('notificationCount');
+                if (badge) {
+                    if (unreadCount > 0) {
+                        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            }
+        } catch (e) { /* 静默失败 */ }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNotificationBadge();
+            setInterval(updateNotificationBadge, 30000);
+        });
+    } else {
+        updateNotificationBadge();
+        setInterval(updateNotificationBadge, 30000);
+    }
+})();
+</script>
+{% endif %}

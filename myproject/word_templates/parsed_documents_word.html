@@ -1,0 +1,1104 @@
+{% extends "base_ynex_word.html" %}
+
+{% block title %}已解析文档 - 参考文献检查系统{% endblock %}
+{% block extra_css %}
+    <style>
+        /* 统一文档卡片样式 */
+        .document-card {
+            margin-bottom: 0.75rem !important;
+            padding: 0.75rem !important;
+            border-radius: 6px !important;
+            border: 1px solid var(--default-border);
+            background: var(--bs-white);
+            transition: all 0.15s ease-in-out;
+        }
+        
+        .document-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        
+        .document-title {
+            font-size: 14px !important;
+            margin-bottom: 0.25rem !important;
+            line-height: 1.3 !important;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            max-width: 600px; /* 限制标题最大宽度，为按钮留出空间 */
+        }
+        
+        /* 文档操作按钮区域 */
+        .document-actions {
+            min-width: 240px; /* 确保有足够空间容纳3个按钮 */
+            flex-shrink: 0; /* 不允许收缩 */
+        }
+        
+        .document-actions .btn {
+            font-size: 12px !important;
+            padding: 0.25rem 0.5rem !important;
+            white-space: nowrap; /* 防止按钮文字换行 */
+        }
+        
+        .document-meta .badge {
+            font-size: 11px !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+        
+        .doc-count {
+            background: #f8f9fa;
+            border: 0.5px solid #dee2e6;
+            padding: 0.25rem 0.6rem;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6c757d;
+            border-right: 0.5px solid #dee2e6;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .doc-count:last-child {
+            border-right: none;
+        }
+
+        .doc-count span {
+            color: #495057;
+            font-weight: 600;
+            margin-left: 0.25rem;
+        }
+
+        .doc-count-container {
+            display: flex;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 0.5px solid #dee2e6;
+            background: #fff;
+        }
+        
+        .doc-count-section {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f1f3f4;
+            margin-bottom: 0.75rem !important;
+            flex-shrink: 0;
+        }
+        
+        /* 紧凑化卡片间距 */
+        .card-header {
+            padding: 0.5rem 1rem !important;
+            flex-shrink: 0;
+            min-height: 60px;
+        }
+        
+        .card-body {
+            padding: 0.75rem 1rem !important;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        #documentsList {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 0.25rem;
+        }
+        
+        /* 自定义滚动条样式 */
+        #documentsList::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #documentsList::-webkit-scrollbar-track {
+            background: #f8f9fa;
+            border-radius: 3px;
+        }
+        
+        #documentsList::-webkit-scrollbar-thumb {
+            background: #dee2e6;
+            border-radius: 3px;
+        }
+        
+        #documentsList::-webkit-scrollbar-thumb:hover {
+            background: #ced4da;
+        }
+        
+        .custom-card {
+            margin-bottom: 0;
+            height: calc(100vh - 120px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 空状态居中样式 */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .empty-state .empty-icon {
+            font-size: 4rem;
+            color: #adb5bd;
+            margin-bottom: 1.5rem;
+        }
+        
+        .empty-state .empty-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #6c757d;
+            margin-bottom: 0.75rem;
+        }
+        
+        .empty-state .empty-message {
+            color: #adb5bd;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        
+        .document-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border-color: #ced4da;
+        }
+        
+        .document-number {
+            grid-area: number;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .document-icon {
+            grid-area: icon;
+            font-size: 20px;
+            color: #28a745;
+            align-self: center;
+        }
+        
+        .document-info {
+            grid-area: info;
+            align-self: center;
+        }
+        
+        .document-info h4 {
+            color: #333;
+            margin-bottom: 0.25rem;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .document-meta {
+            font-size: 12px;
+            color: #6c757d;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        
+        .document-actions {
+            display: flex;
+            gap: 0.375rem;
+        }
+        
+        /* 状态切换按钮样式 */
+        .status-filter-group {
+            display: flex;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #dee2e6;
+            background: #fff;
+        }
+        
+        .status-filter-btn {
+            padding: 0.25rem 0.6rem;
+            border: none;
+            background: #f8f9fa;
+            color: #6c757d;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-right: 1px solid #dee2e6;
+            min-width: 70px;
+        }
+        
+        .status-filter-btn:last-child {
+            border-right: none;
+        }
+        
+        .status-filter-btn:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+        
+        .status-filter-btn.active {
+            background: #6f42c1 !important;
+            color: #fff !important;
+            font-weight: 600;
+        }
+        
+        .status-filter-btn.active:hover {
+            background: #5a2d8f !important;
+        }
+    </style>
+{% endblock %}
+
+<!-- Start Switcher -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="switcher-canvas" aria-labelledby="offcanvasRightLabel">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title text-default" id="offcanvasRightLabel">Switcher</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <nav class="border-bottom border-block-end-dashed">
+            <div class="nav nav-tabs nav-justified" id="switcher-main-tab" role="tablist">
+                <button class="nav-link active" id="switcher-home-tab" data-bs-toggle="tab" data-bs-target="#switcher-home"
+                    type="button" role="tab" aria-controls="switcher-home" aria-selected="true">Theme Styles</button>
+                <button class="nav-link" id="switcher-profile-tab" data-bs-toggle="tab" data-bs-target="#switcher-profile"
+                    type="button" role="tab" aria-controls="switcher-profile" aria-selected="false">Theme Colors</button>
+            </div>
+        </nav>
+        <div class="tab-content" id="nav-tabContent">
+            <div class="tab-pane fade show active border-0" id="switcher-home" role="tabpanel" aria-labelledby="switcher-home-tab" tabindex="0">
+                <div class="">
+                    <p class="switcher-style-head">Theme Color Mode:</p>
+                    <div class="row switcher-style gx-0">
+                        <div class="col-4">
+                            <div class="form-check switch-select">
+                                <label class="form-check-label" for="switcher-light-theme">Light</label>
+                                <input class="form-check-input" type="radio" name="theme-style" id="switcher-light-theme" checked>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="form-check switch-select">
+                                <label class="form-check-label" for="switcher-dark-theme">Dark</label>
+                                <input class="form-check-input" type="radio" name="theme-style" id="switcher-dark-theme">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="">
+                    <p class="switcher-style-head">Directions:</p>
+                    <div class="row switcher-style gx-0">
+                        <div class="col-4">
+                            <div class="form-check switch-select">
+                                <label class="form-check-label" for="switcher-ltr">LTR</label>
+                                <input class="form-check-input" type="radio" name="direction" id="switcher-ltr" checked>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="form-check switch-select">
+                                <label class="form-check-label" for="switcher-rtl">RTL</label>
+                                <input class="form-check-input" type="radio" name="direction" id="switcher-rtl">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="">
+                    <p class="switcher-style-head">Navigation Styles:</p>
+                    <div class="row switcher-style gx-0">
+                        <div class="col-4">
+                            <div class="form-check switch-select">
+                                <label class="form-check-label" for="switcher-vertical">Vertical</label>
+                                <input class="form-check-input" type="radio" name="navigation-style" id="switcher-vertical" checked>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="form-check switch-select">
+                                <label class="form-check-label" for="switcher-horizontal">Horizontal</label>
+                                <input class="form-check-input" type="radio" name="navigation-style" id="switcher-horizontal">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade border-0" id="switcher-profile" role="tabpanel" aria-labelledby="switcher-profile-tab" tabindex="0">
+                <div>
+                    <div class="theme-colors">
+                        <p class="switcher-style-head">Menu Colors:</p>
+                        <div class="d-flex switcher-style pb-2">
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-white" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Light Menu" type="radio" name="menu-colors"
+                                    id="switcher-menu-light">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-dark" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Dark Menu" type="radio" name="menu-colors"
+                                    id="switcher-menu-dark" checked>
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-primary" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Color Menu" type="radio" name="menu-colors"
+                                    id="switcher-menu-primary">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-gradient" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Gradient Menu" type="radio" name="menu-colors"
+                                    id="switcher-menu-gradient">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-transparent"
+                                    data-bs-toggle="tooltip" data-bs-placement="top" title="Transparent Menu"
+                                    type="radio" name="menu-colors" id="switcher-menu-transparent">
+                            </div>
+                        </div>
+                        <div class="px-4 pb-3 text-muted fs-11">Note:If you want to change color Menu dynamically change from below Theme Primary color picker</div>
+                    </div>
+                    <div class="theme-colors">
+                        <p class="switcher-style-head">Header Colors:</p>
+                        <div class="d-flex switcher-style pb-2">
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-white" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Light Header" type="radio" name="header-colors"
+                                    id="switcher-header-light" checked>
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-dark" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Dark Header" type="radio" name="header-colors"
+                                    id="switcher-header-dark">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-primary" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Color Header" type="radio" name="header-colors"
+                                    id="switcher-header-primary">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-gradient" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Header Header" type="radio" name="header-colors"
+                                    id="switcher-header-gradient">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-transparent" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="Transparent Header" type="radio" name="header-colors"
+                                    id="switcher-header-transparent">
+                            </div>
+                        </div>
+                        <div class="px-4 pb-3 text-muted fs-11">Note:If you want to change color Header dynamically change from below Theme Primary color picker</div>
+                    </div>
+                    <div class="theme-colors">
+                        <p class="switcher-style-head">Theme Primary:</p>
+                        <div class="d-flex flex-wrap align-items-center switcher-style">
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-primary-1" type="radio"
+                                    name="theme-primary" id="switcher-primary">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-primary-2" type="radio"
+                                    name="theme-primary" id="switcher-primary1">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-primary-3" type="radio" name="theme-primary"
+                                    id="switcher-primary2">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-primary-4" type="radio" name="theme-primary"
+                                    id="switcher-primary3">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-primary-5" type="radio" name="theme-primary"
+                                    id="switcher-primary4">
+                            </div>
+                            <div class="form-check switch-select ps-0 mt-1 color-primary-light">
+                                <div class="theme-container-primary"></div>
+                                <div class="pickr-container-primary"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="theme-colors">
+                        <p class="switcher-style-head">Theme Background:</p>
+                        <div class="d-flex flex-wrap align-items-center switcher-style">
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-bg-1" type="radio"
+                                    name="theme-background" id="switcher-background">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-bg-2" type="radio"
+                                    name="theme-background" id="switcher-background1">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-bg-3" type="radio" name="theme-background"
+                                    id="switcher-background2">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-bg-4" type="radio"
+                                    name="theme-background" id="switcher-background3">
+                            </div>
+                            <div class="form-check switch-select me-3">
+                                <input class="form-check-input color-input color-bg-5" type="radio"
+                                    name="theme-background" id="switcher-background4">
+                            </div>
+                            <div class="form-check switch-select ps-0 mt-1 tooltip-static-demo color-bg-transparent">
+                                <div class="theme-container-background"></div>
+                                <div class="pickr-container-background"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="menu-image mb-3">
+                        <p class="switcher-style-head">Menu With Background Image:</p>
+                        <div class="d-flex flex-wrap align-items-center switcher-style">
+                            <div class="form-check switch-select m-2">
+                                <input class="form-check-input bgimage-input bg-img1" type="radio" name="theme-background"
+                                    id="switcher-bg-img">
+                            </div>
+                            <div class="form-check switch-select m-2">
+                                <input class="form-check-input bgimage-input bg-img2" type="radio" name="theme-background"
+                                    id="switcher-bg-img1">
+                            </div>
+                            <div class="form-check switch-select m-2">
+                                <input class="form-check-input bgimage-input bg-img3" type="radio" name="theme-background"
+                                    id="switcher-bg-img2">
+                            </div>
+                            <div class="form-check switch-select m-2">
+                                <input class="form-check-input bgimage-input bg-img4" type="radio" name="theme-background"
+                                    id="switcher-bg-img3">
+                            </div>
+                            <div class="form-check switch-select m-2">
+                                <input class="form-check-input bgimage-input bg-img5" type="radio" name="theme-background"
+                                    id="switcher-bg-img4">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="d-grid canvas-footer"> 
+            <button type="button" id="reset-all" class="btn btn-danger btn-block m-1">Reset</button> 
+        </div>
+    </div>
+</div>
+<!-- End Switcher -->
+
+{% block content %}
+<!-- Flash消息 -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="flash-message" data-type="{{ 'success' if category == 'success' else 'danger' }}" data-message="{{ message }}" style="display: none;"></div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- 文档列表卡片 -->
+<div class="card custom-card">
+                    <div class="card-header justify-content-between py-1">
+                        <div class="card-title mb-0">
+                            文档列表
+                        </div>
+                        <div class="d-flex">
+                            <div class="me-2">
+                                <div class="status-filter-group" id="statusFilterGroup">
+                                    <button type="button" class="status-filter-btn active" data-status="all">全部文档</button>
+                                    <button type="button" class="status-filter-btn" data-status="parsed">已解析</button>
+                                    <button type="button" class="status-filter-btn" data-status="unparsed">未解析</button>
+                                    <button type="button" class="status-filter-btn" data-status="incomplete">缺失</button>
+                                </div>
+                            </div>
+                            <div class="me-2">
+                                <select id="sortBy" class="form-select form-select-sm">
+                                    <option value="time_desc">按时间排序 (新→旧)</option>
+                                    <option value="time_asc">按时间排序 (旧→新)</option>
+                                    <option value="name_asc">按名称排序 (A→Z)</option>
+                                    <option value="name_desc">按名称排序 (Z→A)</option>
+                                    <option value="size_desc">按大小排序 (大→小)</option>
+                                    <option value="size_asc">按大小排序 (小→大)</option>
+                                </select>
+                            </div>
+                            <div class="input-group input-group-sm" style="width: 250px;">
+                                <input type="text" id="documentSearch" class="form-control" placeholder="搜索文档名称..." autocomplete="off" spellcheck="false">
+                                <span class="input-group-text"><i class="ri-search-line"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between doc-count-section">
+                            <div class="doc-count-container">
+                                <div class="doc-count" id="docCountDisplay">全部：<span id="docCount">0</span></div>
+                                <div class="doc-count" id="parsedCountDisplay">已解析：<span id="parsedCount">0</span></div>
+                                <div class="doc-count" id="unparsedCountDisplay">未解析：<span id="unparsedCount">0</span></div>
+                                <div class="doc-count" id="incompleteCountDisplay">缺失：<span id="incompleteCount">0</span></div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="clearAllBtn" onclick="clearAllParsedFiles()" disabled>
+                                <i class="ri-delete-bin-line me-1"></i>清空已解析
+                            </button>
+                        </div>
+                        
+                        <!-- 文档列表 -->
+                        <div id="documentsList">
+                            <!-- 文档列表将在这里动态加载 -->
+                        </div>
+                    </div>
+                </div>
+
+    <!-- Popper JS -->
+    <script src="{{ url_for('static', filename='assets/libs/@popperjs/core/umd/popper.min.js') }}"></script>
+
+    <!-- Bootstrap JS -->
+    <script src="{{ url_for('static', filename='assets/libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+    <!-- Node Waves JS-->
+    <script src="{{ url_for('static', filename='assets/libs/node-waves/waves.min.js') }}"></script>
+
+    <!-- Sticky JS -->
+    <script src="{{ url_for('static', filename='assets/js/sticky.js') }}"></script>
+
+    <!-- Simplebar JS -->
+    <script src="{{ url_for('static', filename='assets/libs/simplebar/simplebar.min.js') }}"></script>
+
+    <script>
+        // 全局变量存储当前文档列表
+        let allDocuments = [];
+        let parsedDocuments = [];
+        let unparsedDocuments = [];
+        let filteredDocuments = [];
+
+        // 格式化时间显示
+        function formatDateTime(datetime) {
+            if (!datetime) return '未知时间';
+            
+            // 直接解析GMT格式字符串 "Sun, 26 Oct 2025 15:19:13 GMT" 转为 "2025年10月26日 15:19"
+            try {
+                // 匹配GMT格式: Day, DD Mon YYYY HH:MM:SS GMT
+                const gmtMatch = datetime.match(/^[A-Za-z]{3},\s+(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s+GMT$/);
+                if (gmtMatch) {
+                    const monthMap = {
+                        'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+                        'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+                        'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+                    };
+                    const day = gmtMatch[1].padStart(2, '0');
+                    const month = monthMap[gmtMatch[2]];
+                    const year = gmtMatch[3];
+                    const hour = gmtMatch[4];
+                    const minute = gmtMatch[5];
+                    return `${year}年${month}月${day}日 ${hour}:${minute}`;
+                }
+                
+                // 匹配标准格式: YYYY-MM-DD HH:MM:SS
+                const stdMatch = datetime.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+                if (stdMatch) {
+                    const [_, year, month, day, hour, minute] = stdMatch;
+                    return `${year}年${month}月${day}日 ${hour}:${minute}`;
+                }
+                
+                // 如果格式不匹配，返回原始字符串
+                return datetime;
+            } catch (e) {
+                return datetime;
+            }
+        }
+
+        // 获取当前选中的状态筛选值
+        function getCurrentStatusFilter() {
+            const activeBtn = document.querySelector('.status-filter-btn.active');
+            return activeBtn ? activeBtn.dataset.status : 'all';
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllDocuments();
+            
+            // 初始化搜索、排序和状态筛选功能
+            const documentSearch = document.getElementById('documentSearch');
+            const sortBy = document.getElementById('sortBy');
+            const statusFilterGroup = document.getElementById('statusFilterGroup');
+            
+            if (documentSearch) {
+                documentSearch.addEventListener('input', applyFiltersAndSort);
+            }
+            
+            if (sortBy) {
+                sortBy.addEventListener('change', applyFiltersAndSort);
+            }
+            
+            // 为状态筛选按钮添加事件监听器
+            if (statusFilterGroup) {
+                statusFilterGroup.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('status-filter-btn')) {
+                        // 移除所有按钮的active类
+                        const allBtns = statusFilterGroup.querySelectorAll('.status-filter-btn');
+                        allBtns.forEach(btn => btn.classList.remove('active'));
+                        
+                        // 为点击的按钮添加active类
+                        e.target.classList.add('active');
+                        
+                        // 应用筛选
+                        applyFiltersAndSort();
+                    }
+                });
+            }
+        });
+
+        // 加载所有文档列表 - Word 模板只显示 Word 文档
+        function loadAllDocuments() {
+            // 只获取文档列表页面的数据（包含uploaded、completed、error）
+            fetch('/api/parsed-files')
+                .then(response => response.json())
+                .then(parsedData => {
+                    // 处理文档数据 - 过滤只显示 Word 文档（.doc, .docx）
+                    if (parsedData.success) {
+                        allDocuments = (parsedData.files || [])
+                            .filter(doc => {
+                                // 只保留 Word 文档
+                                const fileName = (doc.original_name || '').toLowerCase();
+                                return fileName.endsWith('.doc') || fileName.endsWith('.docx');
+                            })
+                            .map(doc => ({
+                                ...doc,
+                                original_upload_time: doc.upload_time,
+                                upload_time: formatDateTime(doc.upload_time)
+                            }));
+                        console.log('文档数据示例:', allDocuments[0]); // 调试信息
+                    } else {
+                        allDocuments = [];
+                        console.error('获取文档列表失败:', parsedData.error);
+                    }
+
+                    applyFiltersAndSort();
+                    updateClearAllButton();
+                    updateDocumentCounts();
+                })
+                .catch(error => {
+                    console.error('Error loading documents:', error);
+                    allDocuments = [];
+                    updateDocumentCounts();
+                });
+        }
+
+        // 保留原有的加载已解析文档函数以便兼容
+        function loadParsedDocuments() {
+            loadAllDocuments();
+        }
+
+        // 应用筛选和排序
+        function applyFiltersAndSort() {
+            const searchTerm = document.getElementById('documentSearch').value.toLowerCase();
+            const sortBy = document.getElementById('sortBy').value;
+            const statusFilter = getCurrentStatusFilter();
+            
+            // 根据状态筛选选择基础数据
+            let baseDocuments = [];
+            switch (statusFilter) {
+                case 'parsed':
+                    baseDocuments = allDocuments.filter(doc => 
+                        doc.status === 'completed'
+                    );
+                    break;
+                case 'unparsed':
+                    baseDocuments = allDocuments.filter(doc => 
+                        doc.status === 'uploaded'
+                    );
+                    break;
+                case 'incomplete':
+                    baseDocuments = allDocuments.filter(doc => 
+                        doc.status === 'error'
+                    );
+                    break;
+                case 'all':
+                default:
+                    baseDocuments = allDocuments;
+                    break;
+            }
+            
+            // 应用搜索筛选
+            filteredDocuments = baseDocuments.filter(doc => 
+                doc.original_name.toLowerCase().includes(searchTerm)
+            );
+            
+            // 应用排序
+            filteredDocuments.sort((a, b) => {
+                switch (sortBy) {
+                    case 'time_desc':
+                        return new Date(b.original_upload_time || b.upload_time) - new Date(a.original_upload_time || a.upload_time);
+                    case 'time_asc':
+                        return new Date(a.original_upload_time || a.upload_time) - new Date(b.original_upload_time || b.upload_time);
+                    case 'name_asc':
+                        return a.original_name.localeCompare(b.original_name);
+                    case 'name_desc':
+                        return b.original_name.localeCompare(a.original_name);
+                    case 'size_desc':
+                        return (b.file_size || b.size || 0) - (a.file_size || a.size || 0);
+                    case 'size_asc':
+                        return (a.file_size || a.size || 0) - (b.file_size || b.size || 0);
+                    default:
+                        return 0;
+                }
+            });
+            
+            renderDocumentsList(filteredDocuments, statusFilter);
+        }
+
+        // 从备注信息中提取处理时间
+        function extractProcessingTime(remarks) {
+            if (!remarks) return null;
+            const match = remarks.match(/处理时间:\s*(\d+分\d+秒)/);
+            return match ? match[1] : null;
+        }
+        
+        // 格式化处理时间(秒)为可读格式
+        function formatProcessingTime(seconds) {
+            if (!seconds || seconds <= 0) return null;
+            
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            
+            if (hours > 0) {
+                return `${hours}小时${minutes}分${secs}秒`;
+            } else if (minutes > 0) {
+                return `${minutes}分${secs}秒`;
+            } else {
+                return `${secs}秒`;
+            }
+        }
+
+        // 渲染文档列表
+        function renderDocumentsList(documents, currentStatus = 'all') {
+            const documentsListContainer = document.getElementById('documentsList');
+            
+            updateDocumentCount(documents.length);
+            
+            if (documents.length === 0) {
+                let emptyMessage = '';
+                let emptyIcon = '';
+                let emptyTitle = '';
+                
+                switch (currentStatus) {
+                    case 'parsed':
+                        emptyIcon = 'ri-file-check-line';
+                        emptyTitle = '还没有已解析的文档';
+                        emptyMessage = '请先在上传文件中上传并解析DOC、DOCX文档';
+                        break;
+                    case 'unparsed':
+                        emptyIcon = 'ri-file-upload-line';
+                        emptyTitle = '没有未解析的文档';
+                        emptyMessage = '所有文档都已解析完成';
+                        break;
+                    case 'incomplete':
+                        emptyIcon = 'ri-file-warning-line';
+                        emptyTitle = '没有缺失的文档';
+                        emptyMessage = '所有文档都已完整处理';
+                        break;
+                    default:
+                        emptyIcon = 'ri-file-list-line';
+                        emptyTitle = '还没有文档';
+                        emptyMessage = '请先在上传文件中上传DOC、DOCX文档';
+                        break;
+                }
+                
+                documentsListContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="${emptyIcon}"></i>
+                        </div>
+                        <h5 class="empty-title">${emptyTitle}</h5>
+                        <p class="empty-message">${emptyMessage}</p>
+                        <a href="{{ url_for('word_dashboard') }}" class="btn btn-primary">
+                            <i class="ri-home-line me-1"></i>返回上传文件
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            documentsListContainer.innerHTML = documents.map((doc, index) => {
+                // 根据文件状态确定状态徽章
+                let statusBadge;
+                if (doc.status === 'uploaded') {
+                    statusBadge = '<span class="badge bg-secondary">未解析</span>';
+                } else if (doc.status === 'completed') {
+                    statusBadge = '<span class="badge bg-success">已解析</span>';
+                } else if (doc.status === 'error') {
+                    statusBadge = '<span class="badge bg-warning">缺失</span>';
+                } else {
+                    statusBadge = '<span class="badge bg-secondary">未知</span>';
+                }
+                
+                // 获取处理时间 - 只对已完成的文档显示
+                let processingTime = null;
+                
+                // 🔧 只对已完成的文档计算处理时间
+                if (doc.status === 'completed') {
+                    // 方式1: 优先使用后端计算的processing_time_seconds字段
+                    if (doc.processing_time_seconds && doc.processing_time_seconds > 0) {
+                        processingTime = formatProcessingTime(doc.processing_time_seconds);
+                    }
+                    // 方式2: 如果没有，前端直接计算 processed_time - processing_start_time
+                    else if (doc.processed_time && doc.processing_start_time) {
+                        try {
+                            const startTime = new Date(doc.processing_start_time);
+                            const endTime = new Date(doc.processed_time);
+                            const durationSeconds = Math.floor((endTime - startTime) / 1000);
+                            
+                            if (durationSeconds > 0) {
+                                processingTime = formatProcessingTime(durationSeconds);
+                            }
+                        } catch (e) {
+                            console.error('计算处理时间失败:', e);
+                        }
+                    }
+                    // 方式3: 从remarks提取（向后兼容）
+                    else {
+                        processingTime = extractProcessingTime(doc.remarks);
+                    }
+                }
+                
+                // 判断文档类型
+                const isWordDocument = doc.original_name && (doc.original_name.toLowerCase().endsWith('.doc') || doc.original_name.toLowerCase().endsWith('.docx'));
+                const isPdfDocument = doc.original_name && doc.original_name.toLowerCase().endsWith('.pdf');
+                
+                // 根据文档类型显示不同的按钮
+                let actionButtons = '';
+                
+                // 查看按钮：只对PDF文档显示
+                if (isPdfDocument) {
+                    actionButtons += `
+                        <button class="btn btn-sm btn-primary" onclick="viewProcessingResult('${doc.file_id}')" title="查看文档">
+                            <i class="ri-eye-line me-1"></i>查看
+                        </button>
+                    `;
+                }
+                
+                // 参考文献按钮：只对Word文档显示
+                if (isWordDocument) {
+                    actionButtons += `
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewReferenceAnalysis('${doc.file_id}')" title="参考文献">
+                            <i class="ri-bookmark-line me-1"></i>参考文献
+                        </button>
+                    `;
+                }
+                
+                // 清除按钮：对所有文档都显示
+                actionButtons += `
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeDocument('${doc.file_id}')" title="清除文档">
+                        <i class="ri-delete-bin-line me-1"></i>清除
+                    </button>
+                `;
+                
+                return `
+                <div class="document-card" data-file-id="${doc.file_id}">
+                    <div class="d-flex align-items-center">
+                        <div class="me-2">
+                            <div class="avatar avatar-sm avatar-rounded ${doc.is_parsed ? 'bg-success-transparent' : 'bg-warning-transparent'}">
+                                <span class="fs-12 fw-semibold">${index + 1}</span>
+                            </div>
+                        </div>
+                        <div class="flex-fill" style="min-width: 0; overflow: hidden;">
+                            <h6 class="mb-1 fw-semibold document-title" title="${escapeHtml(doc.original_name)}">${escapeHtml(doc.original_name)}</h6>
+                            <div class="document-meta d-flex flex-wrap gap-1">
+                                <span class="badge bg-light text-dark">
+                                    <i class="ri-calendar-line me-1"></i>${doc.upload_time}
+                                </span>
+                                <span class="badge bg-light text-dark">
+                                    <i class="ri-file-line me-1"></i>${formatFileSize(doc.file_size || doc.size || 0)}</span>
+                                ${statusBadge}
+                                ${processingTime ? `<span class="badge bg-success-transparent text-success processing-time" title="文档处理耗时"><i class="ri-time-line me-1"></i>${processingTime}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="document-actions ms-auto d-flex gap-1 justify-content-end">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // 更新文档数量显示
+        function updateDocumentCount(count) {
+            const docCountElement = document.getElementById('docCount');
+            if (docCountElement) {
+                docCountElement.textContent = count;
+            }
+        }
+
+        // 更新所有文档计数显示
+        function updateDocumentCounts() {
+            // 更新总文档数
+            const docCountElement = document.getElementById('docCount');
+            if (docCountElement) {
+                docCountElement.textContent = allDocuments.length;
+            }
+            
+            // 根据新的三种状态计算数量
+            const parsedCount = allDocuments.filter(doc => doc.status === 'completed').length;
+            const unparsedCount = allDocuments.filter(doc => doc.status === 'uploaded').length;
+            const incompleteCount = allDocuments.filter(doc => doc.status === 'error').length;
+            
+            // 更新已解析文档数
+            const parsedCountElement = document.getElementById('parsedCount');
+            if (parsedCountElement) {
+                parsedCountElement.textContent = parsedCount;
+            }
+            
+            // 更新未解析文档数
+            const unparsedCountElement = document.getElementById('unparsedCount');
+            if (unparsedCountElement) {
+                unparsedCountElement.textContent = unparsedCount;
+            }
+            
+            // 更新缺失文档数（如果有对应的元素）
+            const incompleteCountElement = document.getElementById('incompleteCount');
+            if (incompleteCountElement) {
+                incompleteCountElement.textContent = incompleteCount;
+            }
+        }
+
+        // 更新清空所有按钮状态
+        function updateClearAllButton() {
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            
+            if (!clearAllBtn) return;
+            
+            const parsedCount = allDocuments.filter(doc => doc.status === 'completed').length;
+            
+            if (parsedCount > 0) {
+                clearAllBtn.disabled = false;
+                clearAllBtn.title = `清空 ${parsedCount} 个已解析文档`;
+            } else {
+                clearAllBtn.disabled = true;
+                clearAllBtn.title = '没有可清空的文档';
+            }
+        }
+
+        // 解析文档
+        function parseDocument(fileId) {
+            const doc = allDocuments.find(d => d.file_id === fileId);
+            if (!doc) {
+                showAlert('danger', '文档不存在');
+                return;
+            }
+            
+            // 跳转到上传页面并高亮显示该文档
+            window.location.href = `/word/dashboard?highlight=${fileId}`;
+        }
+
+        // 查看文档 - 跳转到综合处理中心
+        function viewProcessingResult(fileId) {
+            window.location.href = `/word/comprehensive-processor?highlight=${fileId}`;
+        }
+        
+        // 查看参考文献分析
+        function viewReferenceAnalysis(fileId) {
+            window.location.href = `/word/reference-analysis?file_id=${fileId}`;
+        }
+        
+        // 清除单个文档
+        function removeDocument(fileId) {
+            const doc = allDocuments.find(d => d.file_id === fileId);
+            if (!doc) {
+                showAlert('danger', '文档不存在');
+                return;
+            }
+            
+            const confirmMsg = `确定要清除已解析文档 "${doc.original_name}" 吗？\n\n注意：这将删除文档记录和相关的解析结果，包括：\n• Markdown内容\n• JSON提取结果\n• 参考文献分析数据\n• 所有相关缓存数据`;
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+            
+            fetch(`/api/files/${fileId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', `文档 "${doc.original_name}" 已清除`);
+                    loadAllDocuments(); // 刷新文档列表
+                } else {
+                    showAlert('danger', '清除失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', '清除过程中发生错误');
+            });
+        }
+        
+        // 清空所有已解析文档
+        function clearAllParsedFiles() {
+            const parsedDocuments = allDocuments.filter(doc => doc.status === 'completed');
+            
+            if (parsedDocuments.length === 0) {
+                showAlert('warning', '没有可清空的已解析文档');
+                return;
+            }
+            
+            const confirmMsg = `确定要清空全部 ${parsedDocuments.length} 个已解析文档吗？\n\n注意：这将删除所有已解析文档的记录和解析结果。`;
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+            
+            // 禁用按钮
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            const originalText = clearAllBtn.innerHTML;
+            clearAllBtn.disabled = true;
+            clearAllBtn.innerHTML = '🔄 清空中...';
+            
+            // 批量删除所有已解析的Word文档（过滤掉PDF）
+            const wordDocuments = parsedDocuments.filter(doc => {
+                const filename = doc.original_name.toLowerCase();
+                return filename.endsWith('.doc') || filename.endsWith('.docx');
+            });
+            
+            if (wordDocuments.length === 0) {
+                showAlert('warning', '没有可清空的Word文档');
+                clearAllBtn.disabled = false;
+                clearAllBtn.innerHTML = originalText;
+                return;
+            }
+            
+            const deletePromises = wordDocuments.map(doc => 
+                fetch(`/api/files/${doc.file_id}`, { method: 'DELETE' })
+                .then(response => response.json())
+            );
+            
+            Promise.all(deletePromises)
+            .then(results => {
+                const successCount = results.filter(result => result.success).length;
+                const failCount = results.length - successCount;
+                
+                // 移除成功提示，仅保留刷新功能
+                loadAllDocuments(); // 刷新文档列表
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', '清空过程中发生错误');
+            })
+            .finally(() => {
+                clearAllBtn.disabled = false;
+                clearAllBtn.innerHTML = originalText;
+            });
+        }
+
+        // 转义HTML字符
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 格式化文件大小
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 页面加载完成后的初始化已移动到loadAllDocuments函数中
+    </script>
+{% endblock %}

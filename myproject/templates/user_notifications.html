@@ -1,0 +1,87 @@
+﻿{% extends "base_notifications.html" %}
+
+{% block notification_title %}用户通知中心{% endblock %}
+
+{% block header_title %}用户通知中心{% endblock %}
+{% block header_subtitle %}查看和管理您的通知消息{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-outline-light btn-sm me-2" onclick="location.href='/user/send-feedback'">
+    <i class="fe fe-plus me-2"></i>发送反馈
+</button>
+<button class="btn btn-outline-light btn-sm" onclick="markAllAsRead()" id="markAllBtn">
+    <i class="bi bi-check2-all me-2"></i>全部标记已读
+</button>
+{% endblock %}
+
+{% block filter_tabs %}
+<li class="nav-item" role="presentation">
+    <button class="nav-link active" data-filter="all" onclick="filterNotifications('all')">
+        全部通知
+    </button>
+</li>
+<li class="nav-item" role="presentation">
+    <button class="nav-link" data-filter="unread" onclick="filterNotifications('unread')">
+        未读通知
+    </button>
+</li>
+<li class="nav-item" role="presentation">
+    <button class="nav-link" data-filter="read" onclick="filterNotifications('read')">
+        已读通知
+    </button>
+</li>
+{% endblock %}
+
+{% block badge_api_url %}/api/user/notification-count{% endblock %}
+
+{% block api_url %}/api/user/notifications{% endblock %}
+{% block clear_api_url %}/api/user/notifications/clear{% endblock %}
+{% block mark_read_api_url %}/api/user/notifications{% endblock %}
+{% block delete_api_url %}/api/user/notifications{% endblock %}
+
+{% block notification_js %}
+<script>
+// API配置
+const apiConfig = {
+    list: '/api/user/notifications',
+    markRead: '/api/user/notifications/{id}/read', 
+    delete: '/api/user/notifications/{id}',
+    markAllRead: '/api/user/notifications/mark-all-read',
+    clear: '/api/user/notifications/clear',
+    count: '/api/user/notifications/count',
+    sendFeedback: '/api/user/send-feedback'
+};
+
+// 显示通知消息（使用统一的showAlert）
+function showNotification(type, message) {
+    // 将type映射到统一的alert类型
+    const alertType = type === 'error' ? 'danger' : type;
+    showAlert(alertType, message);
+}
+
+// 标记所有通知为已读
+async function markAllAsRead() {
+    try {
+        const response = await fetch(apiConfig.markAllRead, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('success', '所有通知已标记为已读');
+            loadNotifications();
+            updateNotificationBadge();
+        } else {
+            showNotification('error', data.message || '标记失败');
+        }
+    } catch (error) {
+        console.error('标记所有通知为已读失败:', error);
+        showNotification('error', '操作失败，请稍后重试');
+    }
+}
+</script>
+{% endblock %}
