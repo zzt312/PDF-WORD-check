@@ -98,16 +98,33 @@
 ```
 
 ### 数据库设计（MySQL 8.0+，utf8mb4_unicode_ci）
+
+完整建库脚本见 [database_setup.sql](database_setup.sql)，共 7 张表：
+
+| 表名 | 行数（约） | 说明 |
+|------|-----------|------|
+| `users` | 6 | 用户账号，含角色（user/admin/premium）与群组归属 |
+| `user_files` | 71 | 上传文件及全部处理结果，含混合存储路由字段、NSFC JSON、参考文献验证 JSON |
+| `system_logs` | 12,000+ | 用户操作审计日志，约 5.5 MB，支持定期清理 |
+| `notifications` | — | 站内通知，支持 system/personal/group 三种投递范围 |
+| `user_notification_reads` | — | 通知精确已读记录，UNIQUE(user_id, notification_id) 防重复 |
+| `user_feedback` | — | 用户反馈工单，状态流转 open→in_progress→resolved/closed |
+| `group_api_keys` | — | 群组共享 API Key，UNIQUE(group_id, api_provider) |
+
+#### user_files 核心字段
 ```
-users              # 用户基础信息
-user_api_keys      # MinerU / 硅基流动 API Key
-user_files         # 文件记录（混合存储）
-processing_tasks   # 异步任务状态跟踪
-system_logs        # 操作审计日志
-groups             # 群组信息
-group_members      # 群组成员关系
-notifications      # 用户通知
-user_feedback      # 用户反馈工单
+file_id                   VARCHAR(255) UNIQUE  -- UUID 全局唯一标识
+original_document_type    ENUM(pdf/word_doc/word_docx/unknown)
+status                    ENUM(uploaded/processing/completed/error)
+storage_type              ENUM(database/filesystem)  -- 混合存储路由
+md_content                LONGTEXT     -- 数据库存储的 MD 正文
+md_file_path              VARCHAR(500) -- 文件系统存储时的路径
+extracted_json_data        LONGTEXT     -- MinerU 原始结构化数据
+table_preliminary_check   LONGTEXT     -- 表格正则初筛结果 JSON
+text_preliminary_check    LONGTEXT     -- 文本正则初筛结果 JSON
+nsfc_json_data             LONGTEXT     -- NSFC 申请书结构化提取结果
+reference_validation_json LONGTEXT     -- GB/T 7714 验证结果 JSON
+pdf_data                  LONGBLOB     -- 原始 PDF 二进制（在线预览用）
 ```
 
 ### 混合存储策略
@@ -142,8 +159,12 @@ cd myproject
 # 2. 安装依赖
 pip install -r requirements.txt
 
-# 3. 初始化数据库（MySQL Workbench 或命令行执行）
+# 3. 初始化数据库
+#    database_setup.sql 会自动 CREATE DATABASE IF NOT EXISTS，可直接执行
 mysql -u root -p < database_setup.sql
+
+# 4. （可选）验证表结构
+mysql -u root pdf_md_system -e "SHOW TABLES;"
 ```
 
 ### 环境变量（推荐生产环境设置）
@@ -207,6 +228,7 @@ myproject/
 ├── generate_rules_excel.py   # 生成检查规则汇总 Excel（两 Sheet）
 ├── gunicorn_config.py        # Gunicorn 生产配置
 ├── env_loader.py             # 环境变量加载工具
+├── database_setup.sql        # 完整建库脚本（7 张表，含注释与常用维护查询）
 ├── requirements.txt          # Python 依赖
 ├── 检查规则汇总.xlsx          # 导出的规则说明文档
 ├── templates/                # Jinja2 HTML 模板
@@ -233,13 +255,39 @@ myproject/
 
 ### 数据库（`database_config.py`）
 ```python
-# 支持环境变量覆盖，默认值如下
+# 支持环境变量覆盖，默认值如下（user 为 root，password 为空）
 DB_HOST = 'localhost'
 DB_PORT = 3306
 DB_NAME = 'pdf_md_system'
-DB_USER = 'zzt'
+DB_USER = 'root'
 # 生产环境请通过环境变量 DB_PASSWORD 设置
 ```
+
+### 数据库维护
+```sql
+-- 查看各表数据量与磁盘占用
+SELECT TABLE_NAME,
+       TABLE_ROWS,
+       ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) AS size_MB
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = 'pdf_md_system'
+ORDER BY TABLE_NAME;
+
+-- 清理 90 天前的操作日志
+DELETE FROM system_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY);
+
+-- 查看文件存储分布（数据库 vs 文件系统）
+SELECT storage_type, COUNT(*) AS file_count,
+       ROUND(SUM(file_size) / 1024 / 1024, 2) AS total_size_MB
+FROM user_files GROUP BY storage_type;
+
+-- 查看未回复的反馈工单
+SELECT id, user_id, subject, feedback_type, created_at
+FROM user_feedback
+WHERE status IN ('open','in_progress') AND admin_reply IS NULL
+ORDER BY created_at;
+```
+> 更多维护查询见 [database_setup.sql](database_setup.sql) 文末注释部分。
 
 ### 混合存储阈值（`md_storage_manager.py`）
 ```python
