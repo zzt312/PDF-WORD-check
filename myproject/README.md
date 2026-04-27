@@ -1,302 +1,306 @@
-# PDF转Markdown文档处理系统 📄➡️📝
+# 国自然申请书 & 毕业论文智能审查平台
 
-一个基于Flask的企业级PDF文档智能转换系统，集成MinerU API，提供高质量的PDF到Markdown转换服务。
+基于 Flask 的企业级文档处理与智能审查系统，支持 **国家自然科学基金（NSFC）申请书 PDF** 与 **大学生毕业论文 Word** 两条独立处理链路，集成 MinerU API 完成 PDF→Markdown 转换，并通过正则初筛、LLM 质检、参考文献规范验证三级审查引擎输出结构化审查报告。
 
-## ✨ 核心特性
+---
 
-### 🔐 完整的用户管理
-- **用户注册登录**: 安全的密码哈希存储
-- **多API密钥管理**: 每用户最多管理3个API密钥
-- **权限控制**: 文件隔离，用户只能访问自己的文件
-- **操作审计**: 完整的用户行为日志记录
+## ✨ 核心功能
 
-### 📁 智能文件管理
-- **批量上传**: 支持多文件同时上传
-- **混合存储策略**: 
-  - 小文件(≤50KB): 数据库存储，快速访问
-  - 大文件(>50KB): 文件系统存储，节省数据库空间
-- **文件状态跟踪**: 上传中→处理中→已完成→错误处理
-- **安全文件命名**: UUID防冲突，原名保留显示
+### 📄 PDF 处理链路（NSFC 申请书）
+- **MinerU API 转换**：将 NSFC 申请书 PDF 转换为结构化 Markdown，支持公式识别、表格 OCR
+- **一键解析**：异步多线程处理，实时 SSE 进度推送（准备→上传→处理→下载→完成）
+- **VLM 表格提取**：调用本地 Qwen2.5-VL-7B 或硅基流动 Qwen2.5-VL-72B 从 PDF 页面图像中精准提取表格
+- **91 条审查规则**（见下文）
 
-### ⚡ 异步处理引擎
-- **后台任务**: 多线程异步处理，不阻塞界面
-- **实时进度**: 9个处理阶段的详细进度反馈
-- **错误恢复**: 智能重试机制和详细错误信息
-- **批量处理**: 支持MinerU批量API调用
+### 📝 Word 处理链路（毕业论文）
+- **python-docx 跨平台解析**：无需安装 MS Office，跨平台运行
+- **毕业论文参考文献审查**：60 条 GB/T 7714-2015 规则验证
 
-### 🎯 高质量转换
-- **MinerU API集成**: 使用最新的V4 API
-- **智能配置**: 
-  - 公式识别开关
-  - 表格处理优化
-  - OCR模式选择
-  - 多语言支持
-- **结果验证**: 自动验证转换结果完整性
+### 🔍 三级审查引擎
+| 级别 | 类型 | 说明 |
+|------|------|------|
+| 初筛层 | 正则 + 混合 | 22 条规则，毫秒级，覆盖格式、字段、数值一致性 |
+| 质检层 | LLM | 调用本地 Qwen2.5-32B，评估立项依据/研究内容/研究基础质量 |
+| 引用层 | 正则 + 可选 LLM | 60 条 GB/T 7714-2015 规则，含作者格式、文献类型标识、DOI 等 |
+
+#### NSFC PDF 审查规则清单（91 条）
+<details>
+<summary>点击展开规则列表</summary>
+
+**正则初筛规则（22 条）**
+- `1` 申请代码格式（4 位数字）
+- `2` 合作单位规范（不含附院）
+- `3` 主要参与者人数与表格行数一致性
+- `4.1~4.4` 报告正文：新模板章节、空白页、H18 专项、易漏章节
+- `5.1~5.2` 年度计划时间一致性与相邻期衔接
+- `6~8` 联系方式（手机/邮箱）、组织机构代码格式
+- `A1` 预算总额与分项合计一致性
+- `A2~A3` 执行期限合理性、身份证号校验
+- `A4` 参与者工作月数 ≤ 12
+- `A5` 关键词数量 3~5 个
+- `A6~A7` 参考文献序号连续性与正文引用覆盖
+- `A8~A9` 摘要字数、中英文项目名称一致性
+- `A10~A14` 重复段落检测、必填字段、资助类别金额/年限、总人数统计
+- `C1~C2` 参考文献时效性（混合正则+LLM）、自引率检查
+
+**LLM 质检规则（3 条）**
+- `LLM-1` 立项依据质量（研究动机与价值）
+- `LLM-2` 研究内容质量（自主撰写 vs 套模板）
+- `LLM-3` 研究基础质量（前期积累展示）
+
+**参考文献 GB/T 7714 验证（60+ 条）**：覆盖专著[M]、期刊[J]、报纸[N]、学位论文[D]、专利[P]、报告[R]、标准[S]、电子资源[EB/OL] 等全文献类型
+</details>
+
+### 🤖 AI 推理后端
+| 服务 | 模型 | 用途 |
+|------|------|------|
+| 本地 vLLM（VLM） | Qwen2.5-VL-7B | 表格 PDF 页图像提取（首选） |
+| 硅基流动 API（VLM） | Qwen2.5-VL-72B-Instruct | VLM 备用 |
+| 本地 vLLM（LLM） | Qwen2.5-32B | 文本质量审查 |
+
+### 🔐 用户与权限管理
+- 用户注册/登录，Werkzeug 密码哈希
+- 角色体系：普通用户 / 管理员
+- 文件隔离：用户只能访问自己的文档
+- 记住我（30 天）/ 普通 session（24 小时）
+- CSRF 保护（Flask-WTF）
+
+### 👥 群组管理
+- 创建群组，批量绑定 MinerU / 硅基流动 API Key
+- 群组成员共享 API Key，减少个人 Token 管理成本
+- 群组确认机制，管理员审批
+
+### 🔔 通知系统
+- 管理员向用户推送系统通知
+- 用户反馈工单，支持管理员回复
+- 未读消息计数角标
+
+### 📊 管理后台
+- 仪表盘：用户统计、文件处理量、服务状态
+- 用户管理：新建/禁用/角色变更/删除
+- 实时监控：任务队列、处理进度、系统性能（psutil）
+- 日志管理：操作日志查询与定期清理
+
+---
 
 ## 🏗️ 系统架构
 
-### 数据库设计
+### 双链路页面路由
 ```
-📊 MySQL 8.0+ (utf8mb4_unicode_ci)
-├── users              # 用户基础信息
-├── user_api_keys      # API密钥管理
-├── user_files         # 文件存储(混合策略)
-├── processing_tasks   # 异步任务跟踪
-└── system_logs        # 系统操作日志
+/ (PDF 链路)                   /word/ (Word 链路)
+├── /dashboard                 ├── /word/dashboard
+├── /comprehensive-processor   ├── /word/comprehensive-processor
+├── /rule-checker              ├── /word/rule-checker
+├── /parsed-documents          ├── /word/parsed-documents
+├── /reference-analysis        ├── /word/reference-analysis
+├── /group-management          ├── /word/group-management
+└── /admin                     └── /word/admin
+```
+
+### 数据库设计（MySQL 8.0+，utf8mb4_unicode_ci）
+```
+users              # 用户基础信息
+user_api_keys      # MinerU / 硅基流动 API Key
+user_files         # 文件记录（混合存储）
+processing_tasks   # 异步任务状态跟踪
+system_logs        # 操作审计日志
+groups             # 群组信息
+group_members      # 群组成员关系
+notifications      # 用户通知
+user_feedback      # 用户反馈工单
 ```
 
 ### 混合存储策略
 ```
-📁 存储架构
-├── 数据库存储 (≤50KB)
-│   └── 快速访问，适合小文件
-├── 文件系统存储 (>50KB)
-│   ├── md_storage/
-│   │   ├── 202508/        # 按月组织
-│   │   └── 202509/
-│   └── 大文件优化存储
-└── 智能路由选择
+📁 存储路由
+├── 数据库存储  (≤ 50 KB)   → 快速读取，适合小文件
+└── 文件系统存储 (> 50 KB)  → md_storage/YYYYMM/uuid.md
 ```
 
-### 处理流程
-```
-🔄 转换流程 (9个阶段)
-准备阶段 → 验证阶段 → 上传阶段 → 处理阶段 → 下载阶段 → 解压阶段 → 完成
-   2%        7%        15%       35%        85%        95%       100%
-```
+### 并发控制
+- 全局文件处理线程池：`ThreadPoolExecutor(max_workers=2)`
+- VLM 并发信号量：`Semaphore(2)`（vLLM continuous batching）
+- 本地 MinerU 并发信号量：`Semaphore(2)`
+- `tasks_db_lock` / `one_click_tasks_lock` 保护任务字典并发读写
+
+---
 
 ## 🚀 快速开始
 
 ### 环境要求
 - Python 3.8+
 - MySQL 8.0+
-- MinerU API Token
+- MinerU API Token（PDF 转换必需）
+- 可选：硅基流动 API Key（VLM 备用）
 
 ### 安装步骤
 
-1. **克隆项目**
 ```bash
-git clone <repository-url>
+# 1. 进入项目目录
 cd myproject
-```
 
-2. **安装依赖**
-```bash
+# 2. 安装依赖
 pip install -r requirements.txt
+
+# 3. 初始化数据库（MySQL Workbench 或命令行执行）
+mysql -u root -p < database_setup.sql
 ```
 
-3. **数据库配置**
+### 环境变量（推荐生产环境设置）
 ```bash
-# 启动MySQL服务
-start_mysql.bat
-
-# 在MySQL Workbench中执行
-database_setup.sql
-```
-
-4. **环境变量配置**（可选）
-```bash
+set SECRET_KEY=your-strong-secret-key   # 必须设置，否则重启后 session 失效
 set DB_HOST=localhost
+set DB_PORT=3306
 set DB_USER=zzt
 set DB_PASSWORD=your_password
 set DB_NAME=pdf_md_system
 ```
 
-5. **启动应用**
+### 启动
 ```bash
 # 开发模式
 python app_pdf_md.py
 
-# 生产模式
-start_production.bat
+# 生产模式（Gunicorn）
+gunicorn -c gunicorn_config.py app_pdf_md:app
 ```
+
+访问 `http://localhost:5000`，注册账号后开始使用。
+
+---
 
 ## 📖 使用指南
 
-### 首次使用
-1. 访问 `http://localhost:5000`
-2. 注册新用户账号
-3. 登录并进入仪表板
+### PDF 申请书处理
+1. 登录后进入**仪表板**，上传 NSFC 申请书 PDF（≤ 50 MB）
+2. 配置 MinerU API Token 和处理参数（公式/表格/OCR/语言）
+3. 点击**一键解析**，实时查看 9 阶段进度
+4. 解析完成后，在**综合处理器**页面运行三级审查，查看结构化报告
 
-### API密钥配置
-1. 点击"配置API"或在上传时配置
-2. 输入MinerU API Token
-3. 设置处理参数：
-   - 启用公式识别
-   - 启用表格处理
-   - OCR模式选择
-   - 语言设置
+### Word 毕业论文处理
+1. 访问 `/word/` 路由体系，注册/登录（独立会话）
+2. 上传 `.docx` 论文文件
+3. 在参考文献分析页查看 GB/T 7714-2015 验证报告
 
-### 文件处理
-1. 在仪表板选择PDF文件上传
-2. 系统自动分配处理任务
-3. 实时查看处理进度
-4. 完成后查看MD结果或下载ZIP
+### 管理员操作
+- 访问 `/admin` 进入管理后台
+- 用户管理、通知推送、日志查看均在此完成
 
-### 高级功能
-- **批量处理**: 同时上传多个文件
-- **密钥管理**: 在Token管理页面切换API密钥
-- **历史记录**: 查看所有处理过的文件
-- **错误诊断**: 详细的错误信息和解决建议
-
-## 🛠️ 配置选项
-
-### 数据库配置 (`database_config.py`)
-```python
-DEFAULT_CONFIG = {
-    'host': 'localhost',
-    'port': 3306,
-    'database': 'pdf_md_system',
-    'user': 'zzt',
-    'password': '@2938730291$Zzt',
-    'charset': 'utf8mb4'
-}
-```
-
-### 存储配置 (`md_storage_manager.py`)
-```python
-DATABASE_SIZE_LIMIT = 50 * 1024      # 50KB
-FILESYSTEM_SIZE_LIMIT = 10 * 1024 * 1024  # 10MB
-MD_STORAGE_DIR = "md_storage"         # 文件存储目录
-```
-
-### API配置
-```python
-MINERU_CONFIG = {
-    'enable_formula': True,    # 启用公式识别
-    'enable_table': True,      # 启用表格处理
-    'is_ocr': False,          # OCR模式
-    'language': 'auto',       # 语言自动检测
-    'model_version': 'v2'     # 模型版本
-}
-```
+---
 
 ## 📁 项目结构
 
 ```
 myproject/
-├── app_pdf_md.py           # 主应用程序
-├── database_config.py      # 数据库配置
-├── md_storage_manager.py   # 存储管理器
-├── database_setup.sql      # 数据库初始化脚本
-├── requirements.txt        # Python依赖包
-├── start_production.bat    # 生产环境启动脚本
-├── start_mysql.bat        # MySQL启动脚本
-├── templates/             # HTML模板
-│   ├── dashboard.html     # 主控制台
-│   ├── login.html         # 登录页面
-│   ├── register.html      # 注册页面
-│   ├── token_manager.html # API密钥管理
-│   └── errors/            # 错误页面
-├── uploads/               # 文件上传目录
-├── downloads/             # 处理结果下载
-├── md_storage/            # MD文件存储
-│   └── 202508/           # 按月组织
-├── logs/                  # 应用日志
-└── migrations/            # 数据库迁移脚本
+├── app_pdf_md.py             # 主应用（12000+ 行，含全部路由）
+├── database_config.py        # MySQL 连接池配置
+├── database_manager.py       # 数据库连接错误处理封装
+├── db_operations.py          # 数据库 CRUD 操作集合
+├── md_storage_manager.py     # 混合存储管理器
+├── md_content_processor.py   # MD 内容分离 + VLM/LLM 调用
+├── reference_validator.py    # GB/T 7714-2015 参考文献验证器
+├── regex_preliminary_check.py# 正则初筛规则引擎
+├── title_enhancer.py         # NSFC 申请书标题优化处理器
+├── notification_system.py    # 通知系统（路由注册 + 业务逻辑）
+├── smart_logger.py           # 智能日志系统（分级 / 控制台优化）
+├── timezone_adapter.py       # 时区适配（UTC+8）
+├── generate_rules_excel.py   # 生成检查规则汇总 Excel（两 Sheet）
+├── gunicorn_config.py        # Gunicorn 生产配置
+├── env_loader.py             # 环境变量加载工具
+├── requirements.txt          # Python 依赖
+├── 检查规则汇总.xlsx          # 导出的规则说明文档
+├── templates/                # Jinja2 HTML 模板
+│   ├── dashboard.html
+│   ├── comprehensive_processor.html
+│   ├── rule_checker.html
+│   ├── parsed_documents.html
+│   ├── reference_analysis.html
+│   ├── group_management.html
+│   ├── login.html / register.html / forgot_password.html
+│   ├── admin/                # 管理后台模板
+│   └── errors/               # 错误页
+├── static/                   # 静态资源（CSS/JS/图片）
+├── word_templates/           # Word 链路模板
+├── uploads/                  # 上传文件临时目录
+├── downloads/                # 处理结果下载
+├── md_storage/               # MD 文件存储（按月分目录）
+└── migrations/               # 数据库迁移脚本
 ```
-
-## 🔧 维护管理
-
-### 数据库迁移
-```bash
-# 查看当前表结构
-DESCRIBE user_files;
-
-# 应用新迁移
-mysql -u zzt -p pdf_md_system < migrations/latest_migration.sql
-```
-
-### 日志管理
-```bash
-# 查看应用日志
-tail -f logs/app.log
-
-# 查看系统日志（数据库中）
-SELECT * FROM system_logs ORDER BY created_at DESC LIMIT 100;
-```
-
-### 存储空间管理
-```bash
-# 清理旧文件（文件系统）
-python -c "from md_storage_manager import md_storage_manager; md_storage_manager.cleanup_old_files()"
-
-# 检查存储使用情况
-SELECT storage_type, COUNT(*) as count, 
-       SUM(CASE WHEN md_content IS NOT NULL THEN LENGTH(md_content) ELSE 0 END) as db_size
-FROM user_files GROUP BY storage_type;
-```
-
-## 🛡️ 安全特性
-
-- **密码安全**: Werkzeug密码哈希
-- **文件隔离**: 用户级别的权限控制
-- **API安全**: Token验证和使用跟踪
-- **输入验证**: 文件类型和大小限制
-- **SQL注入防护**: 参数化查询
-- **会话管理**: Flask安全会话
-
-## 📊 性能优化
-
-- **数据库索引**: 优化查询性能
-- **混合存储**: 平衡速度和空间
-- **异步处理**: 避免界面阻塞
-- **连接池**: 数据库连接复用
-- **文件缓存**: 智能缓存策略
-
-## 🐛 故障排除
-
-### 常见问题
-
-1. **数据库连接失败**
-   - 检查MySQL服务状态
-   - 验证连接配置
-   - 确认数据库和表是否创建
-
-2. **API调用失败**
-   - 验证MinerU Token有效性
-   - 检查网络连接
-   - 查看详细错误日志
-
-3. **文件上传失败**
-   - 检查文件大小限制（50MB）
-   - 确认uploads目录权限
-   - 验证文件格式（仅支持PDF）
-
-### 调试工具
-```bash
-# 测试数据库连接
-python database_config.py
-
-# 验证API Token
-python -c "from app_pdf_md import validate_mineru_token; print(validate_mineru_token('your_token'))"
-```
-
-## 📝 更新日志
-
-- **v1.3** (2025-08-07): 混合存储策略，性能优化
-- **v1.2** (2025-07-21): 多API密钥管理，任务系统重构
-- **v1.1** (2025-07-17): 用户管理系统，安全增强
-- **v1.0** (2025-07-01): 基础PDF转换功能
-
-## 🤝 贡献指南
-
-1. Fork 项目
-2. 创建功能分支
-3. 提交更改
-4. 推送到分支
-5. 创建 Pull Request
-
-## 📄 许可证
-
-本项目基于 MIT 许可证开源 - 查看 [LICENSE](LICENSE) 文件了解详情。
-
-## 📞 支持联系
-
-- **开发者**: zzt
-- **邮箱**: 15950525836@163.com
-- **项目地址**: [GitHub Repository]
 
 ---
 
-🌟 **感谢使用 PDF转Markdown文档处理系统！** 如果这个项目对您有帮助，请给我们一个Star ⭐
+## 🛠️ 关键配置
+
+### 数据库（`database_config.py`）
+```python
+# 支持环境变量覆盖，默认值如下
+DB_HOST = 'localhost'
+DB_PORT = 3306
+DB_NAME = 'pdf_md_system'
+DB_USER = 'zzt'
+# 生产环境请通过环境变量 DB_PASSWORD 设置
+```
+
+### 混合存储阈值（`md_storage_manager.py`）
+```python
+DATABASE_SIZE_LIMIT = 50 * 1024        # 50 KB 以下存数据库
+FILESYSTEM_SIZE_LIMIT = 10 * 1024 * 1024  # 10 MB 上限
+MD_STORAGE_DIR = "md_storage"
+```
+
+### AI 推理服务（`md_content_processor.py`）
+```python
+LOCAL_VLM_CONFIG = {
+    "api_url": "http://<vllm-host>:60606/v1/chat/completions",
+    "model": "Qwen2.5-VL-7B",
+}
+LOCAL_LLM_CONFIG = {
+    "api_url": "http://<llm-host>:60687/v1/chat/completions",
+    "model": "Qwen2.5-32B",
+}
+# 硅基流动备用 VLM 需在用户页面填写 API Key
+```
+
+---
+
+## 🛡️ 安全特性
+
+- **密码哈希**：Werkzeug `generate_password_hash` / `check_password_hash`
+- **CSRF 防护**：Flask-WTF `CSRFProtect`
+- **Session 安全**：`SESSION_COOKIE_HTTPONLY=True`，`SAMESITE=Lax`
+- **SECRET_KEY**：生产环境必须通过环境变量注入；开发环境使用机器特征派生密钥并打印安全警告
+- **SQL 注入防护**：全部使用参数化查询（PyMySQL）
+- **文件隔离**：用户只能访问自己的文件记录
+- **文件类型限制**：上传接口校验扩展名与 MIME 类型
+- **上传大小限制**：50 MB（`MAX_CONTENT_LENGTH`）
+
+---
+
+## 🐛 故障排除
+
+| 问题 | 排查方法 |
+|------|---------|
+| 数据库连接失败 | 检查 MySQL 服务、验证 DB_* 环境变量、确认 `pdf_md_system` 数据库已创建 |
+| MinerU API 调用失败 | 验证 Token 有效期、检查网络、查看 `smart_logger` 控制台输出 |
+| VLM/LLM 服务不可达 | 确认 vLLM 服务地址与端口，检查内网连通性 |
+| 文件上传失败 | 确认文件为 PDF/DOCX、大小 ≤ 50 MB、`uploads/` 目录有写权限 |
+| session 重启失效 | 生产环境设置 `SECRET_KEY` 环境变量 |
+| 规则 Excel 未更新 | 修改 `generate_rules_excel.py` 中的规则列表后重新运行 `python generate_rules_excel.py` |
+
+---
+
+## 📝 更新日志
+
+- **v2.0** (2026-04): Word 毕业论文链路（`/word/`）、群组管理、通知系统、管理后台全面升级
+- **v1.5** (2025-09): 三级审查引擎上线（正则初筛 22 条 + LLM 质检 3 条 + GB/T 7714 60 条）
+- **v1.4** (2025-08): VLM 表格提取（Qwen2.5-VL-7B）、硅基流动 API 备用支持
+- **v1.3** (2025-08): 混合存储策略、连接池、性能优化
+- **v1.2** (2025-07): 多 API 密钥管理、异步任务系统重构
+- **v1.1** (2025-07): 用户管理、CSRF 防护、安全增强
+- **v1.0** (2025-07): 基础 PDF→Markdown 转换功能
+
+---
+
+## 📞 支持联系
+
+- **邮箱**: 15950525836@163.com
